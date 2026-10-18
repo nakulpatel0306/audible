@@ -1,0 +1,34 @@
+{
+  "name": "audible",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "bun test",
+    "lint": "oxlint",
+    "typecheck": "tsc -b",
+    "cli": "bun cli/index.ts"
+  },
+  "dependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.3",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "oxlint": "^1.81.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.4"
+  },
+  "description": "Read your Sleeper fantasy football league and call the play: lineup checks, pickups, trades, team comparisons and playoff odds",
+  "bin": {
+    "audible": "./cli/index.ts"
+  },
+  "license": "MIT"
+}
