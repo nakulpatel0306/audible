@@ -56,6 +56,7 @@ export function makeContext(opts: {
       lastScoredWeek: week - 1,
       waiverType: 'rolling',
     },
+    leagues: [{ id: 'L', name: 'Test', status: 'in_season' }],
     week,
     planWeek: week,
     started: new Set(),

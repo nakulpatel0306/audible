@@ -12,21 +12,26 @@ import { Trades } from './ui/Trades.tsx'
 const TABS = ['Gameday', 'Moves', 'Trades', 'League'] as const
 type Tab = (typeof TABS)[number]
 
-const STORAGE_KEY = 'audible:username'
+const USER_KEY = 'audible:username'
+const leagueKey = (username: string) => `audible:league:${username.toLowerCase()}`
 
-// Storage can be blocked (private windows); the app works without remembering you
-function remembered(): string {
+// Coming back to a tab older than this reloads it, so a dashboard left open all week
+// doesn't show last Sunday's rosters
+const STALE_AFTER_MS = 10 * 60 * 1000
+
+// Storage can be blocked (private windows); the app works without remembering anything
+function recall(key: string): string {
   try {
-    return localStorage.getItem(STORAGE_KEY) ?? ''
+    return localStorage.getItem(key) ?? ''
   } catch {
     return ''
   }
 }
 
-function remember(username: string) {
+function store(key: string, value: string) {
   try {
-    if (username) localStorage.setItem(STORAGE_KEY, username)
-    else localStorage.removeItem(STORAGE_KEY)
+    if (value) localStorage.setItem(key, value)
+    else localStorage.removeItem(key)
   } catch {
     // Not remembering is fine
   }
@@ -38,45 +43,62 @@ type Data = {
   // Extras degrade to null rather than blocking the dashboard
   news: NewsItem[] | null
   usage: Map<string, UsageTrend> | null
+  loadedAt: Date
 }
 
-async function load(username: string): Promise<Data> {
+async function load(username: string, leagueId: string): Promise<Data> {
   const state = await sleeper.nflState()
   const [ctx, trending, news, usageRows] = await Promise.all([
-    loadContext(username, undefined, state),
+    loadContext(username, leagueId || undefined, state),
     sleeper.trending('add', 48, 100).then((rows) => new Map(rows.map((r) => [r.player_id, r.count]))),
     nflNews(100).catch(() => null),
     fetchUsageRows(state.season, `${import.meta.env.BASE_URL}nflverse`).catch(() => null),
   ])
-  return { ctx, trending, news, usage: usageRows && usageTrends(usageRows, ctx.players) }
+  return { ctx, trending, news, usage: usageRows && usageTrends(usageRows, ctx.players), loadedAt: new Date() }
 }
 
+const LEAGUE_STATUS: Record<string, string> = { pre_draft: 'pre-draft', drafting: 'drafting', complete: 'finished' }
+
 export default function App() {
-  const [username, setUsername] = useState(remembered)
+  const [username, setUsername] = useState(() => recall(USER_KEY))
+  const [leagueId, setLeagueId] = useState(() => recall(leagueKey(recall(USER_KEY))))
   const [draft, setDraft] = useState(username)
   const [data, setData] = useState<Data | null>(null)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('Gameday')
-  // Bumped on submit or refresh so the same username refetches
+  // Bumped to refetch with the same username and league
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     if (!username) return
     let cancelled = false
+    setLoading(true)
     setError(null)
-    load(username)
+    load(username, leagueId)
       .then((d) => {
         if (cancelled) return
         setData(d)
-        remember(username)
+        store(USER_KEY, username)
+        store(leagueKey(username), d.ctx.league.id)
       })
       .catch((err) => !cancelled && setError(err instanceof Error ? err.message : String(err)))
+      .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
     }
-  }, [username, attempt])
+  }, [username, leagueId, attempt])
 
-  if (!username || error) {
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && data && Date.now() - data.loadedAt.getTime() > STALE_AFTER_MS) setAttempt((n) => n + 1)
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [data])
+
+  // A failed refresh keeps the dashboard up; only a failed first load sends you back here
+  if (!username || (error && !data)) {
     return (
       <main className="setup">
         <Brand />
@@ -84,8 +106,10 @@ export default function App() {
         <form
           onSubmit={(e) => {
             e.preventDefault()
+            const next = draft.trim()
             setData(null)
-            setUsername(draft.trim())
+            setUsername(next)
+            setLeagueId(recall(leagueKey(next)))
             setAttempt((n) => n + 1)
           }}
         >
@@ -122,17 +146,28 @@ export default function App() {
             ))}
           </nav>
           <div className="account">
-            <span>{ctx.league.name}</span>
+            {ctx.leagues.length > 1 ? (
+              <select className="league-select" value={ctx.league.id} onChange={(e) => setLeagueId(e.target.value)} aria-label="League" disabled={loading}>
+                {ctx.leagues.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name}
+                    {LEAGUE_STATUS[l.status] ? ` (${LEAGUE_STATUS[l.status]})` : ''}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span>{ctx.league.name}</span>
+            )}
             <a href={sleeperLeagueUrl(ctx.league)} target="_blank" rel="noreferrer">
               Open Sleeper
             </a>
-            <button className="link-button" onClick={() => setAttempt((n) => n + 1)}>
-              Refresh
+            <button className="link-button" onClick={() => setAttempt((n) => n + 1)} disabled={loading} title={`Updated ${data.loadedAt.toLocaleString()}`}>
+              {loading ? 'Updating…' : `Updated ${data.loadedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`}
             </button>
             <button
               className="link-button"
               onClick={() => {
-                remember('')
+                store(USER_KEY, '')
                 setData(null)
                 setUsername('')
               }}
@@ -141,6 +176,7 @@ export default function App() {
             </button>
           </div>
         </div>
+        {error && <div className="refresh-error">Couldn't update: {error}. Showing data from {data.loadedAt.toLocaleTimeString()}.</div>}
       </header>
       <main className="app">
         {tab === 'Gameday' && <Gameday ctx={ctx} news={data.news} usage={data.usage} />}

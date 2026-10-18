@@ -160,6 +160,25 @@ h3 {
   color: var(--fg);
 }
 
+.link-button:disabled {
+  cursor: default;
+  color: var(--muted);
+}
+
+.league-select {
+  padding: 5px 10px;
+  font-size: 13px;
+  max-width: 220px;
+}
+
+.refresh-error {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px 10px;
+  font-size: 13px;
+  color: var(--warn);
+}
+
 /* Layout */
 
 .app {

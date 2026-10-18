@@ -1,5 +1,5 @@
 import { leagueProfiles } from '../src/core/compare.ts'
-import { activePlayers, loadContext, projectionFor, sleeperLeagueUrl, type Context } from '../src/core/context.ts'
+import { activePlayers, listLeagues, loadContext, projectionFor, sleeperLeagueUrl, type Context } from '../src/core/context.ts'
 import { weekLineup } from '../src/core/lineup.ts'
 import { lineupCheck } from '../src/core/monitor.ts'
 import { myGames, simulateSeason } from '../src/core/sim.ts'
@@ -19,6 +19,12 @@ const heading = (text: string) => console.log(`\n\x1b[1m${text}\x1b[0m`)
 async function trendingAdds(): Promise<Map<string, number>> {
   const rows = await sleeper.trending('add', 48, 100)
   return new Map(rows.map((r) => [r.player_id, r.count]))
+}
+
+export async function leagues(who: Who) {
+  const { season } = await sleeper.nflState()
+  const { leagues } = await listLeagues(who.user, season)
+  for (const l of leagues) console.log(`${l.id}  ${l.name}  (${l.status.replace('_', ' ')})`)
 }
 
 export async function report(who: Who) {

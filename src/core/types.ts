@@ -51,4 +51,7 @@ export type Projection = {
   sources: { sleeper: number; espn: number | null }
 }
 
+// One of a user's leagues, for choosing between them
+export type LeagueOption = { id: string; name: string; status: string }
+
 export type Matchup = { week: number; a: number; b: number }

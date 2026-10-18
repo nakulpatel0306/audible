@@ -1,17 +1,19 @@
 #!/usr/bin/env bun
 import { parseArgs } from 'node:util'
-import { report, trade } from './commands'
+import { leagues, report, trade } from './commands'
 
 const HELP = `audible: read your league, change the play
 
 Usage
+  audible leagues                       List your leagues and their ids
   audible report                        Lineup check, rankings, odds, waivers, streaming, trades
   audible trade --give <names> --get <names>
                                         Grade a specific trade (comma-separated names)
 
 Options
   --user <name>    Sleeper username (or SLEEPER_USERNAME)
-  --league <id>    League id when you're in several (or SLEEPER_LEAGUE_ID)
+  --league <id>    Which league, from \`audible leagues\` (or SLEEPER_LEAGUE_ID);
+                   defaults to your first league in season
 `
 
 async function main() {
@@ -31,6 +33,8 @@ async function main() {
   const who = { user: values.user, league: values.league }
 
   switch (command) {
+    case 'leagues':
+      return leagues(who)
     case 'report':
       return report(who)
     case 'trade':

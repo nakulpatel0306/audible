@@ -38,19 +38,30 @@ bun dev
 ```
 
 Open the local URL and enter a Sleeper username. If that user is in more than one
-league, Audible picks their first in-season league.
+league, switch between them from the menu in the top bar; Audible remembers the last
+one you picked.
+
+## Staying current
+
+Everything is fetched fresh each time the page loads: rosters, lineups, transactions,
+injuries, projections, live scores, Vegas lines and news. Weeks and seasons roll over
+on their own. A tab left open reloads by itself when you come back to it after 10
+minutes, and the top bar shows when the data was last updated. The nflverse usage
+data on the hosted site refreshes daily (see [Hosting](#hosting)).
 
 ## Use the CLI
 
 The same analysis, in the terminal:
 
 ```sh
+bun cli/index.ts leagues --user <sleeper-username>
 bun cli/index.ts report --user <sleeper-username>
 bun cli/index.ts trade --user <sleeper-username> --give "Player A,Player B" --get "Player C"
 ```
 
-`--league <id>` picks a specific league. `SLEEPER_USERNAME` and `SLEEPER_LEAGUE_ID`
-work in place of the flags.
+`--league <id>` picks a league from `leagues`; without it, Audible uses the first
+league in season. `SLEEPER_USERNAME` and `SLEEPER_LEAGUE_ID` work in place of the
+flags.
 
 ## Where the numbers come from
 
@@ -83,7 +94,9 @@ results:
 The [Pages workflow](.github/workflows/pages.yml) builds the app and deploys it to
 GitHub Pages on every push, and again daily to refresh the nflverse usage data. Fork
 the repo, set **Settings → Pages → Source** to **GitHub Actions**, and it runs at
-`https://<you>.github.io/audible/`.
+`https://<you>.github.io/audible/`. GitHub pauses scheduled workflows in repos with no
+commits for 60 days; if that happens, usage badges stop updating until the next push
+(everything else stays live).
 
 nflverse files can't be fetched by a browser directly, so the dev server proxies them
 and the Pages build saves a copy next to the site

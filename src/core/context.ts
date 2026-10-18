@@ -3,7 +3,7 @@ import { espnProjections, vegasLines, weekGames, type Game, type TeamLine } from
 import { injuryMultiplier, weeklySd } from './model.ts'
 import { projectedScore } from './scoring.ts'
 import * as sleeper from './sleeper.ts'
-import type { League, Matchup, Player, Position, Projection, Roster } from './types.ts'
+import type { League, LeagueOption, Matchup, Player, Position, Projection, Roster } from './types.ts'
 
 export const LAST_WEEK = 17
 
@@ -14,6 +14,8 @@ const ESPN_WEEKS = 4
 // Everything the analysis modules need, fetched once per run
 export type Context = {
   league: League
+  // Every league the user is in this season, for switching between them
+  leagues: LeagueOption[]
   // The week being played, or about to be
   week: number
   // First week roster moves can still affect: next week once this one has kicked off
@@ -71,14 +73,18 @@ function toPlayer(raw: any): Player | null {
   }
 }
 
-async function findLeague(username: string, season: string, leagueId?: string): Promise<{ userId: string; leagueId: string }> {
+// Leagues being played come first; drafts and finished leagues after
+const STATUS_ORDER = ['in_season', 'post_season', 'drafting', 'pre_draft', 'complete']
+
+export async function listLeagues(username: string, season: string): Promise<{ userId: string; leagues: LeagueOption[] }> {
   const found = await sleeper.user(username)
   if (!found) throw new Error(`No Sleeper user named "${username}"`)
-  if (leagueId) return { userId: found.user_id, leagueId }
-  const leagues = await sleeper.userLeagues(found.user_id, season)
-  const active = leagues.find((l) => l.status === 'in_season') ?? leagues[0]
-  if (!active) throw new Error(`${username} has no ${season} leagues`)
-  return { userId: found.user_id, leagueId: active.league_id }
+  const raw = await sleeper.userLeagues(found.user_id, season)
+  const leagues = raw
+    .map((l) => ({ id: l.league_id as string, name: l.name as string, status: l.status as string }))
+    .sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status))
+  if (leagues.length === 0) throw new Error(`${username} isn't in any ${season} Sleeper leagues`)
+  return { userId: found.user_id, leagues }
 }
 
 export async function loadContext(username: string, leagueId?: string, nflState?: sleeper.NflState): Promise<Context> {
@@ -91,11 +97,13 @@ export async function loadContext(username: string, leagueId?: string, nflState?
   const projP = Promise.all(fetchedWeeks.map((w) => sleeper.projections(season, w)))
   const espnP = Promise.all(fetchedWeeks.slice(0, ESPN_WEEKS).map((w) => espnProjections(season, w).catch(() => [])))
 
-  const ids = await findLeague(username, season, leagueId)
+  const { userId, leagues } = await listLeagues(username, season)
+  // A remembered league can disappear (new season, user left it); fall back to the first one
+  const chosen = leagues.find((l) => l.id === leagueId) ?? leagues[0]
   const [rawLeague, rawRosters, users, rawPlayers] = await Promise.all([
-    sleeper.league(ids.leagueId),
-    sleeper.rosters(ids.leagueId),
-    sleeper.leagueUsers(ids.leagueId),
+    sleeper.league(chosen.id),
+    sleeper.rosters(chosen.id),
+    sleeper.leagueUsers(chosen.id),
     playersP,
   ])
   const league = toLeague(rawLeague)
@@ -122,7 +130,9 @@ export async function loadContext(username: string, leagueId?: string, nflState?
     pointsFor: r.settings.fpts + (r.settings.fpts_decimal ?? 0) / 100,
     waiverPosition: r.settings.waiver_position ?? null,
   }))
-  const me = rosters.find((r) => r.ownerId === ids.userId)
+  // Co-managers are listed separately from the owner but run the team just the same
+  const mine = rawRosters.find((r) => r.owner_id === userId || r.co_owners?.includes(userId))
+  const me = rosters.find((r) => r.rosterId === mine?.roster_id)
   if (!me) throw new Error(`${username} doesn't own a team in ${league.name}`)
 
   const scheduleWeeks = range(week, league.playoffWeekStart - 1)
@@ -164,7 +174,7 @@ export async function loadContext(username: string, leagueId?: string, nflState?
   })
 
   const schedule = toSchedule(scheduleWeeks, weekMatchups)
-  return { league, week, planWeek, started, live, rosters, me, players, projections, schedule, games, results, vegas }
+  return { league, leagues, week, planWeek, started, live, rosters, me, players, projections, schedule, games, results, vegas }
 }
 
 function toSchedule(weeks: number[], all: sleeper.MatchupRow[][]): Matchup[] {
