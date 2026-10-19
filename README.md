@@ -19,8 +19,13 @@ you the move and you make it in Sleeper.
 | ------- | ---------------------------------------------------------------------------------------------------------- |
 | Gameday | This week's matchup and win odds, a lineup check, your best lineup, injury report, news on your players    |
 | Moves   | Waiver pickups ranked by what they add to your lineup, defense and kicker streaming by matchup             |
-| Trades  | Deals where both teams' lineups improve, plus a trade builder to grade your own ideas                      |
+| Trades  | Review any offer (accept, counter or decline, with reasons and counteroffers), plus deals that help both teams |
 | League  | Power rankings, position-by-position ranks, all-play records and luck, playoff odds, head-to-head compare |
+
+Got a trade offer? Enter it under **Review an offer**: Audible gives a verdict, says
+why (points gained, where you'd rank at each position, the week it hurts most, injury
+and usage flags), and if it's not worth it, finds small counters that would work for
+both sides.
 
 Every pickup and trade opens a **before and after**: playoff odds, next week's lineup,
 rest-of-season points, a week-by-week chart, and which starters change. Trades show
@@ -56,7 +61,7 @@ The same analysis, in the terminal:
 ```sh
 bun cli/index.ts leagues --user <sleeper-username>
 bun cli/index.ts report --user <sleeper-username>
-bun cli/index.ts trade --user <sleeper-username> --give "Player A,Player B" --get "Player C"
+bun cli/index.ts trade --user <sleeper-username> --give "Player A,Player B" --get "Player C"  # review an offer
 ```
 
 `--league <id>` picks a league from `leagues`; without it, Audible uses the first

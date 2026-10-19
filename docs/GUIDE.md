@@ -49,12 +49,27 @@ opponent's Vegas team total: lower is better.
 
 ## Trades
 
+**Review an offer.** Pick the team and the players on each side. The verdict comes
+from how many rest-of-season starting-lineup points the deal adds for you:
+
+| Verdict    | Your gain           |
+| ---------- | ------------------- |
+| Accept     | +3 or more          |
+| Close call | 0 to +3             |
+| Counter    | 0 to −3             |
+| Decline    | worse than −3       |
+
+Under it: what they gain, how your rank at each position in the league changes, the
+single week that swings most (often a bye), and flags for injured or fading players
+coming to you, or a rising player you'd be selling. For anything short of Accept,
+**Counter with** tries small edits: taking one of your players out, asking for one
+more of theirs, or sending a lesser player instead. It keeps those that gain you at
+least 2 points without costing them more than 2, sorted by what they gain. Click one
+to load it.
+
 **Trades both sides should take.** Every 1-for-1 through 2-for-2 deal with each team,
 kept only if *both* starting lineups improve, sorted by the smaller of the two gains.
 Those are the deals another manager has a reason to accept.
-
-**Build a trade.** Pick players on each side to get the same before and after for any
-deal.
 
 ## Before and after
 

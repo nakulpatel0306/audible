@@ -5,7 +5,8 @@ import { lineupCheck } from '../src/core/monitor.ts'
 import { myGames, simulateSeason } from '../src/core/sim.ts'
 import * as sleeper from '../src/core/sleeper.ts'
 import { streamPlan } from '../src/core/streaming.ts'
-import { evaluateTrade, findTrades, tradesOpen } from '../src/core/trades.ts'
+import { reviewOffer } from '../src/core/review.ts'
+import { findTrades, tradesOpen } from '../src/core/trades.ts'
 import type { Player } from '../src/core/types.ts'
 import { waiverTargets } from '../src/core/waivers.ts'
 
@@ -113,10 +114,16 @@ export async function trade(who: Who, giveNames: string, getNames: string) {
   const partner = others.find((r) => r.players.includes(get[0]))!
   if (!get.every((id) => partner.players.includes(id))) throw new Error('Everything you get has to come from one team')
 
-  const result = evaluateTrade(ctx, partner.rosterId, give, get)
-  console.log(`Give ${names(result.give)} for ${names(result.get)} (${partner.teamName})`)
-  console.log(`  You:  ${result.myGain >= 0 ? '+' : ''}${result.myGain.toFixed(1)} rest-of-season starting points`)
-  console.log(`  Them: ${result.theirGain >= 0 ? '+' : ''}${result.theirGain.toFixed(1)}`)
-  const verdict = result.myGain > 2 && result.theirGain >= 0 ? 'Good for both, worth sending' : result.myGain > 2 ? 'Wins it for you; they may say no' : result.myGain > -2 ? 'Roughly a wash for you' : 'Hurts your team'
-  console.log(`  ${verdict}`)
+  const review = reviewOffer(ctx, partner.rosterId, give, get)
+  const { offer } = review
+  console.log(`You give ${names(offer.give)}, you get ${names(offer.get)} (${partner.teamName})`)
+  console.log(`\n\x1b[1m${VERDICT_LABEL[review.verdict]}\x1b[0m  you ${signed(offer.myGain)}, them ${signed(offer.theirGain)}`)
+  for (const reason of review.reasons) console.log(`  - ${reason}`)
+  if (review.counters.length) {
+    heading('Counter with')
+    for (const c of review.counters) console.log(`  give ${names(c.give)} for ${names(c.get)}  (you ${signed(c.myGain)}, them ${signed(c.theirGain)})`)
+  }
 }
+
+const VERDICT_LABEL = { accept: 'Accept', close: 'Close call', counter: 'Counter', decline: 'Decline' }
+const signed = (n: number) => `${n >= 0 ? '+' : ''}${n.toFixed(1)}`

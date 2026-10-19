@@ -181,7 +181,7 @@ export default function App() {
       <main className="app">
         {tab === 'Gameday' && <Gameday ctx={ctx} news={data.news} usage={data.usage} />}
         {tab === 'Moves' && <Moves ctx={ctx} trending={data.trending} usage={data.usage} />}
-        {tab === 'Trades' && <Trades ctx={ctx} />}
+        {tab === 'Trades' && <Trades ctx={ctx} usage={data.usage} />}
         {tab === 'League' && <League ctx={ctx} />}
       </main>
     </>

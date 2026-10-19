@@ -622,6 +622,106 @@ tr.selectable td:last-child {
   color: var(--warn);
 }
 
+/* Offer review */
+
+.verdict {
+  margin-top: 16px;
+  border-radius: 14px;
+  padding: 18px 20px;
+  background: var(--raised);
+  border: 1px solid var(--line-strong);
+}
+
+.verdict-accept {
+  background: rgba(52, 211, 153, 0.08);
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+.verdict-close {
+  background: rgba(34, 195, 230, 0.07);
+  border-color: rgba(34, 195, 230, 0.28);
+}
+
+.verdict-counter {
+  background: rgba(251, 191, 36, 0.08);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.verdict-decline {
+  background: rgba(248, 113, 113, 0.08);
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+.verdict-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+}
+
+.verdict-label {
+  font-weight: 800;
+  font-stretch: 125%;
+  font-size: 28px;
+  letter-spacing: -0.02em;
+}
+
+.verdict-accept .verdict-label {
+  color: var(--gain);
+}
+
+.verdict-close .verdict-label {
+  color: var(--you);
+}
+
+.verdict-counter .verdict-label {
+  color: var(--warn);
+}
+
+.verdict-decline .verdict-label {
+  color: var(--loss);
+}
+
+.verdict p {
+  margin: 6px 0 10px;
+}
+
+.verdict ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--dim);
+  font-size: 14px;
+  display: grid;
+  gap: 4px;
+}
+
+.counters {
+  margin-top: 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.counters h3 {
+  font-size: 14px;
+}
+
+.counter {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.counter:hover {
+  background: var(--hover);
+}
+
 /* Before / after */
 
 .audible {

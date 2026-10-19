@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { leagueProfiles } from '../src/core/compare.ts'
 import { disagreement, disagreementSpread, espnScore, matchEspn } from '../src/core/consensus.ts'
 import { rosterNews } from '../src/core/monitor.ts'
+import { reviewOffer } from '../src/core/review.ts'
 import { beforeAfter, tradeChanges, waiverChanges } from '../src/core/scenario.ts'
 import { parseCsv, trend, usageSignal } from '../src/core/usage.ts'
 import { makeContext, player, roster } from './fixtures.ts'
@@ -111,5 +112,32 @@ describe('usage', () => {
     const weeks = (shares: number[]) => shares.map((targetShare, i) => ({ week: i + 1, targetShare, targets: 0, carries: 0 }))
     expect(usageSignal(trend(weeks([0.1, 0.1, 0.22, 0.24, 0.2]))!)?.direction).toBe('up')
     expect(usageSignal(trend(weeks([0.18, 0.2, 0.19, 0.21, 0.2]))!)).toBeNull()
+  })
+})
+
+describe('offer review', () => {
+  test('accepts an offer that fills a hole, explains why, and skips counters', () => {
+    const review = reviewOffer(ctx(), 2, ['rbA2'], ['wrB2'])
+    expect(review.verdict).toBe('accept')
+    expect(review.counters).toEqual([])
+    expect(review.reasons[0]).toMatch(/^Adds/)
+  })
+
+  test('declines a downgrade and finds counters that work for both sides', () => {
+    // Swapping your RB1 for their weaker RB costs you every week
+    const review = reviewOffer(ctx(), 2, ['rbA'], ['rbB'])
+    expect(review.verdict).toBe('decline')
+    expect(review.ranks).toEqual([{ position: 'RB', before: 1, after: 2 }])
+    expect(review.counters.length).toBeGreaterThan(0)
+    for (const c of review.counters) {
+      expect(c.myGain).toBeGreaterThanOrEqual(2)
+      expect(c.theirGain).toBeGreaterThan(-2)
+    }
+  })
+
+  test('flags an injured player coming back', () => {
+    const c = ctx()
+    c.players.get('wrB2')!.injuryStatus = 'Out'
+    expect(reviewOffer(c, 2, ['rbA2'], ['wrB2']).reasons.some((r) => r.includes('listed Out'))).toBe(true)
   })
 })

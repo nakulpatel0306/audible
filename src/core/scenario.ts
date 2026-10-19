@@ -19,7 +19,7 @@ export type Side = {
 }
 
 // Same context with the given rosters swapped in, so every analysis can run on "what if"
-function applyChanges(ctx: Context, changes: Change[]): Context {
+export function applyChanges(ctx: Context, changes: Change[]): Context {
   const rosters = ctx.rosters.map((r) => {
     const change = changes.find((c) => c.rosterId === r.rosterId)
     if (!change) return r

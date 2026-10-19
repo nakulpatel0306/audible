@@ -19,6 +19,7 @@ src/core/     plain TypeScript, shared by the web app and the CLI
   lineup.ts     best lineups and rest-of-season value
   waivers.ts    pickups        streaming.ts  defense and kicker streaming
   trades.ts     trade search   sim.ts        win and playoff odds
+  review.ts     offer verdicts, reasons and counteroffers
   compare.ts    power rankings scenario.ts   before and after
 src/ui/       the React app, one file per tab plus shared pieces
 cli/          the terminal report and trade grader
