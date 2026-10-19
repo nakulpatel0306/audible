@@ -13,7 +13,16 @@ export type TeamOdds = {
   firstSeedPct: number
 }
 
-export type GameOdds = { week: number; opponent: number; winPct: number; myMean: number; theirMean: number }
+// Scored is real points banked so far in a week that's being played, null before kickoff
+export type GameOdds = {
+  week: number
+  opponent: number
+  winPct: number
+  myMean: number
+  theirMean: number
+  myScored: number | null
+  theirScored: number | null
+}
 
 // Deterministic so the same data always produces the same odds (and tests can pin them)
 export function seededRandom(seed: number): () => number {
@@ -36,23 +45,24 @@ function normal(rand: () => number): number {
 // started and projections for the rest
 function liveOutlook(ctx: Context, rosterId: number) {
   const { starters, points } = ctx.live.get(rosterId)!
-  let mean = 0
+  let scored = 0
+  let projected = 0
   let variance = 0
   for (const id of starters) {
     const team = ctx.players.get(id)?.team
     if (team && ctx.started.has(team)) {
-      mean += points[id] ?? 0
+      scored += points[id] ?? 0
       continue
     }
     const proj = projectionFor(ctx, id, ctx.week)
-    mean += proj.mean
+    projected += proj.mean
     variance += proj.sd ** 2
   }
-  return { mean, sd: Math.sqrt(variance) }
+  return { mean: scored + projected, sd: Math.sqrt(variance), scored }
 }
 
 function weeklyOutlook(ctx: Context) {
-  const outlook = new Map<string, { mean: number; sd: number }>()
+  const outlook = new Map<string, { mean: number; sd: number; scored?: number }>()
   for (const m of ctx.schedule) {
     for (const rosterId of [m.a, m.b]) {
       const key = `${m.week}:${rosterId}`
@@ -76,7 +86,15 @@ export function myGames(ctx: Context): GameOdds[] {
       const theirs = outlook.get(`${m.week}:${opponent}`)!
       const spread = Math.hypot(mine.sd, theirs.sd)
       const winPct = spread === 0 ? Number(mine.mean > theirs.mean) : normalCdf((mine.mean - theirs.mean) / spread)
-      return { week: m.week, opponent, winPct, myMean: mine.mean, theirMean: theirs.mean }
+      return {
+        week: m.week,
+        opponent,
+        winPct,
+        myMean: mine.mean,
+        theirMean: theirs.mean,
+        myScored: mine.scored ?? null,
+        theirScored: theirs.scored ?? null,
+      }
     })
     .sort((a, b) => a.week - b.week)
 }

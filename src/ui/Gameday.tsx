@@ -25,7 +25,7 @@ function Matchup({ ctx }: { ctx: Context }) {
     <section className="matchup">
       <div className="matchup-top">
         <span className={`pill${live ? ' live' : ''}`}>{live ? `Week ${game.week} · live` : game ? `Week ${game.week} matchup` : 'Regular season over'}</span>
-        <span className="detail">{live ? 'Final + projected for games left' : 'Projected'}</span>
+        <span className="detail">{live ? 'Scored so far · projected final below' : 'Projected'}</span>
       </div>
       {game && opp && (
         <>
@@ -37,7 +37,8 @@ function Matchup({ ctx }: { ctx: Context }) {
               <div className="record">
                 {ctx.me.wins}-{ctx.me.losses}
               </div>
-              <div className="score">{pts(game.myMean)}</div>
+              <div className="score">{pts(game.myScored ?? game.myMean)}</div>
+              {game.myScored !== null && <div className="proj">proj {pts(game.myMean)}</div>}
             </div>
             <div className="vs">VS</div>
             <div className="matchup-team right">
@@ -47,7 +48,8 @@ function Matchup({ ctx }: { ctx: Context }) {
               <div className="record">
                 {opp.wins}-{opp.losses}
               </div>
-              <div className="score">{pts(game.theirMean)}</div>
+              <div className="score">{pts(game.theirScored ?? game.theirMean)}</div>
+              {game.theirScored !== null && <div className="proj">proj {pts(game.theirMean)}</div>}
             </div>
           </div>
           <div className="winbar" role="img" aria-label={`${pct(game.winPct)} chance to win`}>

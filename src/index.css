@@ -310,6 +310,11 @@ h3 {
   letter-spacing: -0.03em;
 }
 
+.matchup-team .proj {
+  color: var(--dim);
+  font-size: 13px;
+}
+
 .matchup-team.right {
   text-align: right;
 }

@@ -61,7 +61,9 @@ export async function report(who: Who) {
   heading('Your schedule')
   for (const g of myGames(ctx)) {
     const opp = ctx.rosters.find((r) => r.rosterId === g.opponent)!
-    console.log(`  wk ${String(g.week).padStart(2)}  ${pct(g.winPct)}  ${pts(g.myMean)} vs ${pts(g.theirMean)}  ${opp.teamName}`)
+    // A week in progress shows what's banked, with the projected final alongside
+    const score = (scored: number | null, mean: number) => (scored === null ? pts(mean) : `${pts(scored)} (proj ${mean.toFixed(1)})`)
+    console.log(`  wk ${String(g.week).padStart(2)}  ${pct(g.winPct)}  ${score(g.myScored, g.myMean)} vs ${score(g.theirScored, g.theirMean)}  ${opp.teamName}`)
   }
 
   heading('Playoff odds (10,000 simulated seasons)')

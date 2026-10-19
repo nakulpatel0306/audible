@@ -120,6 +120,26 @@ describe('simulation', () => {
     expect(game.myMean).toBe(40)
     expect(game.winPct).toBe(1)
   })
+
+  test('keeps points scored apart from projections for games not yet played', () => {
+    const c = ctx()
+    c.players.get('rbA')!.team = 'SF'
+    c.started = new Set(['KC'])
+    c.live = new Map<number, { starters: string[]; points: Record<string, number> }>([
+      [1, { starters: ['qbA', 'rbA'], points: { qbA: 40 } }],
+      [2, { starters: ['qbB'], points: { qbB: 3 } }],
+    ])
+    const [game] = myGames(c)
+    expect(game.myScored).toBe(40)
+    expect(game.myMean).toBeGreaterThan(40)
+    expect(game.theirScored).toBe(3)
+  })
+
+  test('has no scored points before a week kicks off', () => {
+    const [game] = myGames(ctx())
+    expect(game.myScored).toBeNull()
+    expect(game.theirScored).toBeNull()
+  })
 })
 
 describe('lineup check', () => {
