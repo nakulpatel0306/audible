@@ -1,13 +1,16 @@
 # Reading Audible
 
 What every number means and how it's worked out. All points are in your league's own
-scoring.
+scoring. The short version, with your league's rules, is under **Help** in the app.
+
+**Shortcuts:** `1`–`4` switch tabs, `R` refreshes from Sleeper, `?` opens Help, `Esc`
+closes it.
 
 ## Gameday
 
-**Matchup.** While a week is being played, the scores are points already scored plus
-projections for players whose games haven't started. Before kickoff they're pure
-projections. The win bar is the chance your score ends higher, from each lineup's
+**Matchup.** While a week is being played, the big number is points already scored
+and "proj" under it adds projections for starters whose games haven't started. Before
+kickoff the scores are pure projections. The win bar is the chance your score ends higher, from each lineup's
 projected total and its spread.
 
 **Playoff odds, bye, projected wins.** The rest of the regular season is played out
@@ -34,6 +37,11 @@ side.
   once sportsbooks post the week's lines, usually early in the week.
 
 **Win chances.** Your odds in every remaining regular-season game.
+
+**Bye weeks.** Every remaining week where someone on your roster is on bye, from the
+NFL schedule. Bold names are usual starters, judged by their average projection. A week
+is **short** when nobody left on your roster can fill a lineup slot: fix it with a
+pickup or trade before then. The best lineup also notes each starter's upcoming bye.
 
 ## Moves
 

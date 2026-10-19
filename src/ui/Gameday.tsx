@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { byePlan } from '../core/byes.ts'
 import { leagueProfiles } from '../core/compare.ts'
 import { activePlayers, projectionFor, type Context } from '../core/context.ts'
 import { disagreement } from '../core/consensus.ts'
@@ -154,6 +155,7 @@ function Lineup({ ctx, usage }: { ctx: Context; usage: Map<string, UsageTrend> |
               const proj = projectionFor(ctx, c.id, week)
               const line = player.team ? vegas?.get(player.team) : undefined
               const split = disagreement(proj.sources.sleeper, proj.sources.espn) >= SPLIT_FLAG
+              const bye = ctx.byes.get(player.team ?? '')
               return (
                 <tr key={i}>
                   <td className="slot">
@@ -173,6 +175,7 @@ function Lineup({ ctx, usage }: { ctx: Context; usage: Map<string, UsageTrend> |
                   <td className="detail">
                     {proj.opponent ? `vs ${proj.opponent}` : 'Bye'}
                     {line && <div style={{ fontSize: 12 }}>Team total {line.implied.toFixed(1)}</div>}
+                    {bye !== undefined && bye > week && <div style={{ fontSize: 12 }}>Bye wk {bye}</div>}
                   </td>
                   <td className="num" style={{ fontWeight: 700 }}>
                     {pts(proj.sources.sleeper)}
@@ -253,6 +256,44 @@ function Injuries({ ctx }: { ctx: Context }) {
   )
 }
 
+function Byes({ ctx }: { ctx: Context }) {
+  const plan = useMemo(() => byePlan(ctx), [ctx])
+  const short = plan.filter((w) => w.empty.length > 0).length
+  return (
+    <section className="section">
+      <div className="section-head">
+        <h2>Bye weeks</h2>
+        <span className={`pill${short ? ' warn' : ''}`}>{short ? `${short} week${short > 1 ? 's' : ''} short` : plan.length ? 'Covered' : 'None left'}</span>
+      </div>
+      {plan.length === 0 ? (
+        <p className="note" style={{ margin: 0 }}>
+          {ctx.byes.size ? 'No one on your roster has a bye left.' : "Sleeper's schedule didn't load. Refresh to try again."}
+        </p>
+      ) : (
+        <table>
+          <tbody>
+            {plan.map((w) => (
+              <tr key={w.week}>
+                <td className="slot">Wk {w.week}</td>
+                <td>
+                  {w.out.map(({ player, starter }, i) => (
+                    <span key={player.id} className={starter ? 'strong' : 'detail'}>
+                      {i > 0 && ', '}
+                      {player.name}
+                    </span>
+                  ))}
+                  {w.empty.length > 0 && <div className="loss detail">No one left to start at {w.empty.join(', ')}</div>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {plan.length > 0 && <p className="note">Bold players are usual starters. A short week needs a pickup or trade before then.</p>}
+    </section>
+  )
+}
+
 function News({ ctx, news }: { ctx: Context; news: NewsItem[] | null }) {
   const stories = useMemo(() => (news ? rosterNews(ctx, news).slice(0, 8) : null), [ctx, news])
   return (
@@ -306,6 +347,7 @@ export function Gameday({ ctx, news, usage }: { ctx: Context; news: NewsItem[] |
         </div>
         <div className="stack">
           <Injuries ctx={ctx} />
+          <Byes ctx={ctx} />
           <News ctx={ctx} news={news} />
         </div>
       </div>

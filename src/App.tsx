@@ -5,6 +5,7 @@ import * as sleeper from './core/sleeper.ts'
 import { fetchUsageRows, usageTrends, type UsageTrend } from './core/usage.ts'
 import { Brand } from './ui/format.tsx'
 import { Gameday } from './ui/Gameday.tsx'
+import { Help } from './ui/Help.tsx'
 import { League } from './ui/League.tsx'
 import { Moves } from './ui/Moves.tsx'
 import { Trades } from './ui/Trades.tsx'
@@ -67,6 +68,7 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('Gameday')
+  const [helpOpen, setHelpOpen] = useState(false)
   // Bumped to refetch with the same username and league
   const [attempt, setAttempt] = useState(0)
 
@@ -96,6 +98,21 @@ export default function App() {
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [data])
+
+  useEffect(() => {
+    if (!data) return
+    const onKey = (e: KeyboardEvent) => {
+      // Leave typing, browser shortcuts and the open help panel alone
+      if (e.metaKey || e.ctrlKey || e.altKey || helpOpen) return
+      if (e.target instanceof HTMLElement && e.target.closest('input, select, textarea')) return
+      const index = Number(e.key) - 1
+      if (TABS[index]) setTab(TABS[index])
+      else if (e.key === 'r' && !loading) setAttempt((n) => n + 1)
+      else if (e.key === '?') setHelpOpen(true)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [data, helpOpen, loading])
 
   // A failed refresh keeps the dashboard up; only a failed first load sends you back here
   if (!username || (error && !data)) {
@@ -164,6 +181,9 @@ export default function App() {
             <button className="link-button" onClick={() => setAttempt((n) => n + 1)} disabled={loading} title={`Updated ${data.loadedAt.toLocaleString()}`}>
               {loading ? 'Updating…' : `Updated ${data.loadedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`}
             </button>
+            <button className="link-button" onClick={() => setHelpOpen(true)} title="Help and shortcuts (?)">
+              Help
+            </button>
             <button
               className="link-button"
               onClick={() => {
@@ -184,6 +204,7 @@ export default function App() {
         {tab === 'Trades' && <Trades ctx={ctx} usage={data.usage} />}
         {tab === 'League' && <League ctx={ctx} />}
       </main>
+      <Help league={ctx.league} open={helpOpen} onClose={() => setHelpOpen(false)} />
     </>
   )
 }

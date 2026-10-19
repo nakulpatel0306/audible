@@ -257,6 +257,10 @@ h3 {
   white-space: nowrap;
 }
 
+.pill.warn {
+  color: var(--warn);
+}
+
 .pill.live::before {
   content: '';
   width: 6px;
@@ -973,6 +977,70 @@ select {
 
 .error {
   color: var(--loss);
+}
+
+/* Help panel */
+.help {
+  width: min(640px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  padding: 0;
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+}
+
+.help::backdrop {
+  background: rgba(4, 7, 12, 0.7);
+}
+
+.help-body {
+  padding: 24px;
+}
+
+.help h3 {
+  font-size: 14px;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 22px 0 8px;
+}
+
+.help-list {
+  margin: 0;
+}
+
+.help-list div {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+}
+
+.help-list dt {
+  font-weight: 600;
+}
+
+.help-list dd {
+  margin: 0;
+  color: var(--dim);
+}
+
+kbd {
+  font: 600 12px/1 var(--font);
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: var(--raised);
+  border: 1px solid var(--line-strong);
+}
+
+@media (max-width: 520px) {
+  .help-list div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {

@@ -17,10 +17,13 @@ you the move and you make it in Sleeper.
 
 | Tab     | What you get                                                                                               |
 | ------- | ---------------------------------------------------------------------------------------------------------- |
-| Gameday | This week's matchup and win odds, a lineup check, your best lineup, injury report, news on your players    |
+| Gameday | This week's matchup and win odds, a lineup check, your best lineup, injury report, bye weeks, news on your players |
 | Moves   | Waiver pickups ranked by what they add to your lineup, defense and kicker streaming by matchup             |
 | Trades  | Review any offer (accept, counter or decline, with reasons and counteroffers), plus deals that help both teams |
 | League  | Power rankings, position-by-position ranks, all-play records and luck, playoff odds, head-to-head compare |
+
+**Help** in the top bar (or `?`) shows your league's rules, keyboard shortcuts and what
+each number means. `1`–`4` switch tabs and `R` refreshes.
 
 Got a trade offer? Enter it under **Review an offer**: Audible gives a verdict, says
 why (points gained, where you'd rank at each position, the week it hurts most, injury

@@ -1,5 +1,6 @@
 import { disagreement, disagreementSpread, espnScore, matchEspn } from './consensus.ts'
 import { espnProjections, vegasLines, weekGames, type Game, type TeamLine } from './espn.ts'
+import { byeWeeks } from './byes.ts'
 import { injuryMultiplier, weeklySd } from './model.ts'
 import { projectedScore } from './scoring.ts'
 import * as sleeper from './sleeper.ts'
@@ -35,6 +36,8 @@ export type Context = {
   results: { week: number; rosterId: number; points: number }[]
   // Vegas lines by NFL team, for the weeks books have posted (usually just the next one or two)
   vegas: Map<number, Map<string, TeamLine>>
+  // NFL team -> its bye week
+  byes: Map<string, number>
 }
 
 const FANTASY_POSITIONS = new Set(['QB', 'RB', 'WR', 'TE', 'K', 'DEF'])
@@ -96,6 +99,8 @@ export async function loadContext(username: string, leagueId?: string, nflState?
   const playersP = sleeper.players()
   const projP = Promise.all(fetchedWeeks.map((w) => sleeper.projections(season, w)))
   const espnP = Promise.all(fetchedWeeks.slice(0, ESPN_WEEKS).map((w) => espnProjections(season, w).catch(() => [])))
+  // Byes are a nice-to-have; without them the rest of the analysis is unaffected
+  const byesP = sleeper.schedule(season).then(byeWeeks).catch(() => new Map<string, number>())
 
   const { userId, leagues } = await listLeagues(username, season)
   // A remembered league can disappear (new season, user left it); fall back to the first one
@@ -138,12 +143,13 @@ export async function loadContext(username: string, leagueId?: string, nflState?
   const scheduleWeeks = range(week, league.playoffWeekStart - 1)
   // ESPN is a second opinion, not a dependency: if it's down, Sleeper's numbers stand alone
   const pastWeeks = range(1, league.lastScoredWeek)
-  const [allProj, espnProj, weekMatchups, pastMatchups, games] = await Promise.all([
+  const [allProj, espnProj, weekMatchups, pastMatchups, games, byes] = await Promise.all([
     projP,
     espnP,
     Promise.all(scheduleWeeks.map((w) => sleeper.matchups(league.id, w))),
     Promise.all(pastWeeks.map((w) => sleeper.matchups(league.id, w))),
     weekGames(league.season, week),
+    byesP,
   ])
   const results = pastMatchups.flatMap((rows, i) => rows.map((r) => ({ week: pastWeeks[i], rosterId: r.roster_id, points: r.points })))
   const started = new Set(games.filter((g) => g.state !== 'pre').flatMap((g) => [g.home, g.away]))
@@ -174,7 +180,7 @@ export async function loadContext(username: string, leagueId?: string, nflState?
   })
 
   const schedule = toSchedule(scheduleWeeks, weekMatchups)
-  return { league, leagues, week, planWeek, started, live, rosters, me, players, projections, schedule, games, results, vegas }
+  return { league, leagues, week, planWeek, started, live, rosters, me, players, projections, schedule, games, results, vegas, byes }
 }
 
 function toSchedule(weeks: number[], all: sleeper.MatchupRow[][]): Matchup[] {

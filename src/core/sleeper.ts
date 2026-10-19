@@ -54,6 +54,11 @@ export const trending = (type: 'add' | 'drop', hours = 24, limit = 50) =>
 
 const positionQuery = POSITIONS.map((p) => `position[]=${p}`).join('&')
 
+export type ScheduleGame = { week: number; home: string; away: string }
+
+// Also undocumented; the full regular season, which is the only reliable source for byes
+export const schedule = (season: string) => get<ScheduleGame[]>(`/schedule/nfl/regular/${season}`)
+
 // Not part of the documented API, but it's what the Sleeper app itself uses for projections
 export const projections = (season: string, week: number) =>
   get<RawWeekRow[]>(`/projections/nfl/${season}/${week}?season_type=regular&${positionQuery}`)

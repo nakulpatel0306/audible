@@ -1,3 +1,4 @@
+import { byePlan } from '../src/core/byes.ts'
 import { leagueProfiles } from '../src/core/compare.ts'
 import { activePlayers, listLeagues, loadContext, projectionFor, sleeperLeagueUrl, type Context } from '../src/core/context.ts'
 import { weekLineup } from '../src/core/lineup.ts'
@@ -49,6 +50,13 @@ export async function report(who: Who) {
     heading(`Lineup check, week ${check.week}: +${check.gain.toFixed(1)} points available`)
     for (const m of check.start) console.log(`  start ${m.player.name} (${m.points.toFixed(1)})${m.reason ? ` [${m.reason}]` : ''}`)
     for (const m of check.bench) console.log(`  bench ${m.player.name} (${m.points.toFixed(1)})${m.reason ? ` [${m.reason}]` : ''}`)
+  }
+
+  heading('Bye weeks (* usual starter)')
+  for (const w of byePlan(ctx)) {
+    const out = w.out.map((o) => `${o.player.name}${o.starter ? '*' : ''}`).join(', ')
+    const short = w.empty.length ? `  \x1b[31mno one to start at ${w.empty.join(', ')}\x1b[0m` : ''
+    console.log(`  wk ${String(w.week).padStart(2)}  ${out}${short}`)
   }
 
   heading('Power rankings (rest-of-season lineup strength)')

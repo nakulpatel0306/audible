@@ -69,5 +69,6 @@ export function makeContext(opts: {
     games: [],
     results: [],
     vegas: new Map(),
+    byes: new Map(),
   }
 }
