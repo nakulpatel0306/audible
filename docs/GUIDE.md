@@ -11,7 +11,9 @@ closes it.
 **Matchup.** While a week is being played, the big number is points already scored
 and "proj" under it adds projections for starters whose games haven't started. Before
 kickoff the scores are pure projections. The win bar is the chance your score ends higher, from each lineup's
-projected total and its spread.
+projected total and its spread. A lineup's spread is its starters' spreads combined,
+scaled to how far real team totals have landed from projection: 0.77 of the raw
+figure, measured on 2,345 team-weeks across 40 Sleeper leagues.
 
 **Playoff odds, bye, projected wins.** The rest of the regular season is played out
 10,000 times with current rosters. Teams are seeded by wins, then points scored, the
@@ -64,7 +66,9 @@ never cracks your lineup adds nothing, however good he is.
 
 **Streaming.** Defenses and kickers score mostly off the matchup, so Audible compares
 the free agents' next three weeks to yours. It suggests a swap only when a free agent
-projects at least 1.5 points better next week. For defenses, "Opp total" is the
+projects at least 1.5 points better next week *and* the swap doesn't give back more
+over the rest of the season than it wins: trading a defense with a good schedule for one
+good matchup isn't a swap worth making. For defenses, "Opp total" is the
 opponent's Vegas team total: lower is better.
 
 ## Trades

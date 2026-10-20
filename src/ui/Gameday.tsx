@@ -3,7 +3,7 @@ import { leagueProfiles } from '../core/compare.ts'
 import { activePlayers, projectionFor, type Context } from '../core/context.ts'
 import { disagreement } from '../core/consensus.ts'
 import type { NewsItem } from '../core/espn.ts'
-import { weekLineup } from '../core/lineup.ts'
+import { ELIGIBLE, weekLineup } from '../core/lineup.ts'
 import { injuryReport, lineupCheck, rosterNews } from '../core/monitor.ts'
 import { simulateSeason } from '../core/sim.ts'
 import type { Player } from '../core/types.ts'
@@ -202,6 +202,8 @@ function Starters({ ctx, usage }: { ctx: Context; usage: Map<string, UsageTrend>
       <p className="note">The bar under each score is a typical week's range. Flip a card for both sources' projections, the Vegas team total and the player's bye.</p>
       <div className="card-grid">
         {lineup.slots.map(({ slot, player: c }, i) => {
+          // IDP and other slots Audible doesn't project are left to Sleeper
+          if (!(slot in ELIGIBLE)) return null
           const player = c && ctx.players.get(c.id)
           if (!player) {
             return (

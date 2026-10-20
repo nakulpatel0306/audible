@@ -20,6 +20,8 @@ export type Roster = {
   players: string[]
   starters: string[]
   reserve: string[]
+  // Dynasty taxi squad: rostered but can't start, and doesn't use a bench spot
+  taxi: string[]
   wins: number
   losses: number
   ties: number

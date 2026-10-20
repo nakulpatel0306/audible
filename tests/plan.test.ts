@@ -47,6 +47,21 @@ describe('roster plan', () => {
     expect(wk13.before.mean).toBe(20 + 15 + 12 + 8)
   })
 
+  test("doesn't count slots Audible can't fill, like IDP, as holes", () => {
+    const c = ctx()
+    c.league.slots = [...c.league.slots, 'IDP_FLEX']
+    expect(rosterPlan(c).every((w) => !w.holes.includes('IDP_FLEX'))).toBe(true)
+  })
+
+  test('leaves taxi-squad players out of the lineup and roster count', () => {
+    const c = ctx()
+    c.rosters[0].taxi = ['qb1']
+    c.rosters[0].players.push('qb2')
+    c.players.get('qb2')!.team = 'SF'
+    const [wk10] = rosterPlan(c)
+    expect(wk10.before.slots[0].player?.id).toBe('qb2')
+  })
+
   test('gives win chances against the scheduled opponent', () => {
     const c = ctx()
     c.rosters[1] = roster(2, ['qb2'])
@@ -88,6 +103,12 @@ describe('trade partners', () => {
     expect(deal.myGain).toBeGreaterThan(0)
     expect(deal.theirGain).toBeGreaterThan(0)
     expect(deal.get.map((p) => p.position)).toContain('WR')
+  })
+
+  test('skips rostered ids Audible has no player for instead of crashing', () => {
+    const c = ctx()
+    c.rosters[1].players.push('idp1')
+    expect(() => tradePartners(c)).not.toThrow()
   })
 
   test('ignores positions the lineup has no slot for', () => {

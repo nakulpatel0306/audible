@@ -129,6 +129,7 @@ export async function loadContext(username: string, leagueId?: string, nflState?
     players: r.players ?? [],
     starters: r.starters ?? [],
     reserve: r.reserve ?? [],
+    taxi: r.taxi ?? [],
     wins: r.settings.wins,
     losses: r.settings.losses,
     ties: r.settings.ties,
@@ -207,7 +208,7 @@ export const projectionFor = (ctx: Context, playerId: string, week: number): Pro
 
 export const rosterById = (ctx: Context, rosterId: number) => ctx.rosters.find((r) => r.rosterId === rosterId)!
 
-// Players counted for lineups: IR slots hold injured players who can't start anyway
-export const activePlayers = (roster: Roster) => roster.players.filter((p) => !roster.reserve.includes(p))
+// Players counted for lineups: IR and taxi slots hold players who can't start anyway
+export const activePlayers = (roster: Roster) => roster.players.filter((p) => !roster.reserve.includes(p) && !roster.taxi.includes(p))
 
 export const sleeperLeagueUrl = (league: League) => `https://sleeper.com/leagues/${league.id}`

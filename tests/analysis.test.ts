@@ -9,6 +9,17 @@ import { waiverTargets } from '../src/core/waivers.ts'
 import { makeContext, player, roster } from './fixtures.ts'
 
 describe('bestLineup', () => {
+  test('solves overlapping flex slots exactly instead of greedily', () => {
+    // Greedy puts wr1 in WRRB_FLEX and leaves REC_FLEX with wr2 (21). Best is rb1 + wr1 (35).
+    const lineup = bestLineup(['WRRB_FLEX', 'REC_FLEX'], [
+      { id: 'wr1', position: 'WR', mean: 20, sd: 1 },
+      { id: 'rb1', position: 'RB', mean: 15, sd: 1 },
+      { id: 'wr2', position: 'WR', mean: 1, sd: 1 },
+    ])
+    expect(lineup.mean).toBe(35)
+    expect(lineup.slots.map((s) => s.player?.id)).toEqual(['rb1', 'wr1'])
+  })
+
   test('fills fixed slots first so FLEX gets the best leftover', () => {
     const lineup = bestLineup(['FLEX', 'RB', 'WR'], [
       { id: 'rb1', position: 'RB', mean: 20, sd: 1 },
@@ -69,6 +80,13 @@ describe('streaming', () => {
     expect(plan.swap?.add.id).toBe('faDEF')
     expect(plan.swap?.drop.id).toBe('defA')
     expect(plan.swap?.gain).toBe(4)
+  })
+
+  test('skips a swap that wins next week but loses more over the rest of the season', () => {
+    const c = ctx()
+    // faDEF has one great matchup, then projects worse than defA every week after
+    for (let w = 11; w <= 17; w++) c.projections.get(w)!.set('faDEF', { mean: 2, sd: 1, opponent: 'OPP', sources: { sleeper: 2, espn: null } })
+    expect(streamPlan(c, 'DEF').swap).toBeNull()
   })
 })
 
@@ -133,6 +151,21 @@ describe('simulation', () => {
     expect(game.myScored).toBe(40)
     expect(game.myMean).toBeGreaterThan(40)
     expect(game.theirScored).toBe(3)
+  })
+
+  test('adds the unplayed share of a projection for a game in progress', () => {
+    const c = ctx()
+    c.started = new Set(['KC'])
+    // Halftime: qbA has 12 of a 20-point projection, with half the game to go
+    c.games = [{ id: 'g', home: 'KC', away: 'BUF', state: 'in', remaining: 0.5, kickoff: '' }]
+    c.live = new Map<number, { starters: string[]; points: Record<string, number> }>([
+      [1, { starters: ['qbA'], points: { qbA: 12 } }],
+      [2, { starters: ['qbB'], points: { qbB: 12 } }],
+    ])
+    const [game] = myGames(c)
+    expect(game.myScored).toBe(12)
+    expect(game.myMean).toBe(22)
+    expect(game.winPct).toBeCloseTo(0.5, 5)
   })
 
   test('has no scored points before a week kicks off', () => {

@@ -48,7 +48,8 @@ const balance = (a: TradeIdea, b: TradeIdea) => Math.min(b.myGain, b.theirGain) 
 export function tradesWith(ctx: Context, partner: Roster, { minGain = 3, assetsPerTeam = 8 } = {}): TradeIdea[] {
   const tradeable = (ids: string[]) =>
     ids
-      .filter((id) => !['K', 'DEF'].includes(ctx.players.get(id)?.position ?? ''))
+      // Ids missing from the player map (IDP, retired) can't be valued or named
+      .filter((id) => ctx.players.has(id) && !['K', 'DEF'].includes(ctx.players.get(id)!.position))
       .sort((a, b) => rosPoints(ctx, b) - rosPoints(ctx, a))
       .slice(0, assetsPerTeam)
 

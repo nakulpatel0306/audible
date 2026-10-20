@@ -14,6 +14,8 @@ export type Game = {
   home: string
   away: string
   state: 'pre' | 'in' | 'post'
+  // Share of the game still to play: 1 before kickoff, 0 once it's over
+  remaining: number
   kickoff: string
 }
 
@@ -54,6 +56,16 @@ export async function nflNews(limit = 50): Promise<NewsItem[]> {
 const TEAM_ALIASES: Record<string, string> = { WSH: 'WAS' }
 const team = (abbr: string) => TEAM_ALIASES[abbr] ?? abbr
 
+// Four 15-minute quarters; overtime counts as nothing left, since it's usually decided fast
+function remaining(status: any): number {
+  const state = status?.type?.state
+  if (state === 'pre' || !state) return 1
+  if (state === 'post') return 0
+  const period = status.period ?? 1
+  if (period > 4) return 0
+  return Math.min(1, Math.max(0, ((4 - period) * 900 + (status.clock ?? 0)) / 3600))
+}
+
 export async function weekGames(season: string, week: number): Promise<Game[]> {
   const body = await espnGet<{ events: any[] }>(`${SITE_API}/scoreboard?week=${week}&seasontype=2&dates=${season}`)
   return body.events.map((e) => {
@@ -63,6 +75,7 @@ export async function weekGames(season: string, week: number): Promise<Game[]> {
       home: team(sides.find((c: any) => c.homeAway === 'home').team.abbreviation),
       away: team(sides.find((c: any) => c.homeAway === 'away').team.abbreviation),
       state: e.status?.type?.state ?? 'pre',
+      remaining: remaining(e.status),
       kickoff: e.date,
     }
   })

@@ -24,7 +24,7 @@ export function applyChanges(ctx: Context, changes: Change[]): Context {
     const change = changes.find((c) => c.rosterId === r.rosterId)
     if (!change) return r
     const kept = activePlayers(r)
-    return { ...r, players: [...afterTrade(ctx, kept, change.out, change.in), ...r.reserve] }
+    return { ...r, players: [...afterTrade(ctx, kept, change.out, change.in), ...r.reserve, ...r.taxi] }
   })
   return { ...ctx, rosters, me: rosters.find((r) => r.rosterId === ctx.me.rosterId)! }
 }

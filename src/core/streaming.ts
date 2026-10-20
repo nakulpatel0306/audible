@@ -1,4 +1,5 @@
-import { LAST_WEEK, projectionFor, type Context } from './context.ts'
+import { activePlayers, LAST_WEEK, projectionFor, type Context } from './context.ts'
+import { rosValue, weekLineup } from './lineup.ts'
 import type { Player } from './types.ts'
 import { freeAgents } from './waivers.ts'
 
@@ -39,13 +40,25 @@ export function streamPlan(ctx: Context, position: 'DEF' | 'K', horizon = 3): St
     .sort((a, b) => b.next - a.next)
     .slice(0, 8)
 
+  // A swap has to win next week by enough to be worth a claim, and can't give back more over
+  // the rest of the season than it wins now: dropping the defense with the better schedule
+  // for one good matchup is a loss
   let swap: StreamPlan['swap'] = null
-  const current = mine[0]
-  const best = options[0]
-  if (best && (!current || best.next - current.next >= MIN_SWAP_GAIN)) {
-    // Drop the one you own with the worst outlook over the window, not just next week
-    const drop = [...mine].sort((a, b) => a.window - b.window)[0]
-    if (drop) swap = { add: best.player, drop: drop.player, gain: best.next - (current?.next ?? 0) }
+  const roster = activePlayers(ctx.me)
+  const current = weekLineup(ctx, roster, ctx.planWeek).mean
+  const later = rosValue(ctx, roster, ctx.planWeek + 1)
+  let bestScore = 0
+  for (const add of options) {
+    for (const drop of mine) {
+      const next = [...roster.filter((id) => id !== drop.player.id), add.player.id]
+      const gain = weekLineup(ctx, next, ctx.planWeek).mean - current
+      if (gain < MIN_SWAP_GAIN) continue
+      const score = gain + rosValue(ctx, next, ctx.planWeek + 1) - later
+      if (score > bestScore) {
+        bestScore = score
+        swap = { add: add.player, drop: drop.player, gain }
+      }
+    }
   }
   return { position, mine, options, swap }
 }

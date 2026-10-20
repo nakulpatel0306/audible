@@ -1,6 +1,7 @@
 import { activePlayers, projectionFor, type Context } from './context.ts'
 import { weekLineup } from './lineup.ts'
 import { normalCdf } from './math.ts'
+import { TEAM_SPREAD } from './model.ts'
 
 export type TeamOdds = {
   rosterId: number
@@ -42,23 +43,30 @@ function normal(rand: () => number): number {
 }
 
 // Once a week kicks off, lineups are set: count real points for players whose game has
-// started and projections for the rest
+// started, plus the share of their projection still to come if it's in progress, and full
+// projections for the rest
 function liveOutlook(ctx: Context, rosterId: number) {
   const { starters, points } = ctx.live.get(rosterId)!
+  // A started team with no game info is treated as finished
+  const left = new Map(ctx.games.flatMap((g) => [[g.home, g.remaining], [g.away, g.remaining]] as [string, number][]))
   let scored = 0
   let projected = 0
   let variance = 0
   for (const id of starters) {
     const team = ctx.players.get(id)?.team
+    const proj = projectionFor(ctx, id, ctx.week)
     if (team && ctx.started.has(team)) {
       scored += points[id] ?? 0
+      // Points still to come scale with time left, and so does their spread's variance
+      const share = left.get(team) ?? 0
+      projected += proj.mean * share
+      variance += proj.sd ** 2 * share
       continue
     }
-    const proj = projectionFor(ctx, id, ctx.week)
     projected += proj.mean
     variance += proj.sd ** 2
   }
-  return { mean: scored + projected, sd: Math.sqrt(variance), scored }
+  return { mean: scored + projected, sd: Math.sqrt(variance) * TEAM_SPREAD, scored }
 }
 
 function weeklyOutlook(ctx: Context) {

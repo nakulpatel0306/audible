@@ -1,5 +1,5 @@
 import { activePlayers, LAST_WEEK, projectionFor, range, rosterById, type Context } from './context.ts'
-import { rosterCapacity, rosValue, weekLineup, type Lineup, type LineupSlot } from './lineup.ts'
+import { ELIGIBLE, rosterCapacity, rosValue, weekLineup, type Lineup, type LineupSlot } from './lineup.ts'
 import { normalCdf } from './math.ts'
 import type { Player, Position } from './types.ts'
 import { freeAgents } from './waivers.ts'
@@ -38,7 +38,8 @@ const MAX_MOVES_PER_WEEK = 2
 const POOL_PER_POSITION = 6
 const PLAN_POSITIONS: Position[] = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']
 
-const isHole = (s: LineupSlot) => !s.player || s.player.mean === 0
+// IDP and other slots Audible can't fill aren't holes a pickup could fix
+const isHole = (s: LineupSlot) => s.slot in ELIGIBLE && (!s.player || s.player.mean === 0)
 
 function pool(ctx: Context, available: Player[], week: number): Player[] {
   return PLAN_POSITIONS.flatMap((position) =>
