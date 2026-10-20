@@ -6,11 +6,14 @@ import { fetchUsageRows, usageTrends, type UsageTrend } from './core/usage.ts'
 import { Brand } from './ui/format.tsx'
 import { Gameday } from './ui/Gameday.tsx'
 import { Help } from './ui/Help.tsx'
+import { Icon } from './ui/icons.tsx'
 import { League } from './ui/League.tsx'
 import { Moves } from './ui/Moves.tsx'
+import { Plan } from './ui/Plan.tsx'
+import { Scorebug } from './ui/Scorebug.tsx'
 import { Trades } from './ui/Trades.tsx'
 
-const TABS = ['Gameday', 'Moves', 'Trades', 'League'] as const
+const TABS = ['Gameday', 'Plan', 'Moves', 'Trades', 'League'] as const
 type Tab = (typeof TABS)[number]
 
 const USER_KEY = 'audible:username'
@@ -119,6 +122,7 @@ export default function App() {
     return (
       <main className="setup">
         <Brand />
+        <h1>Call the play.</h1>
         <p>Your Sleeper league, read like a coordinator: lineup calls, pickups, trades, and where you stand. Read-only, so it can't touch your team.</p>
         <form
           onSubmit={(e) => {
@@ -150,61 +154,84 @@ export default function App() {
   }
 
   const { ctx } = data
-  return (
+  const refresh = () => setAttempt((n) => n + 1)
+  const switchUser = () => {
+    store(USER_KEY, '')
+    setData(null)
+    setUsername('')
+  }
+  const account = (
     <>
-      <header className="topbar">
-        <div className="topbar-inner">
-          <Brand />
-          <nav className="tabs" role="tablist">
-            {TABS.map((t) => (
-              <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>
-                {t}
-              </button>
-            ))}
-          </nav>
-          <div className="account">
-            {ctx.leagues.length > 1 ? (
-              <select className="league-select" value={ctx.league.id} onChange={(e) => setLeagueId(e.target.value)} aria-label="League" disabled={loading}>
-                {ctx.leagues.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name}
-                    {LEAGUE_STATUS[l.status] ? ` (${LEAGUE_STATUS[l.status]})` : ''}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <span>{ctx.league.name}</span>
-            )}
-            <a href={sleeperLeagueUrl(ctx.league)} target="_blank" rel="noreferrer">
-              Open Sleeper
-            </a>
-            <button className="link-button" onClick={() => setAttempt((n) => n + 1)} disabled={loading} title={`Updated ${data.loadedAt.toLocaleString()}`}>
-              {loading ? 'Updating…' : `Updated ${data.loadedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`}
-            </button>
-            <button className="link-button" onClick={() => setHelpOpen(true)} title="Help and shortcuts (?)">
-              Help
-            </button>
-            <button
-              className="link-button"
-              onClick={() => {
-                store(USER_KEY, '')
-                setData(null)
-                setUsername('')
-              }}
-            >
-              Switch user
-            </button>
-          </div>
-        </div>
-        {error && <div className="refresh-error">Couldn't update: {error}. Showing data from {data.loadedAt.toLocaleTimeString()}.</div>}
-      </header>
-      <main className="app">
-        {tab === 'Gameday' && <Gameday ctx={ctx} news={data.news} usage={data.usage} />}
-        {tab === 'Moves' && <Moves ctx={ctx} trending={data.trending} usage={data.usage} />}
-        {tab === 'Trades' && <Trades ctx={ctx} usage={data.usage} />}
-        {tab === 'League' && <League ctx={ctx} />}
-      </main>
-      <Help league={ctx.league} open={helpOpen} onClose={() => setHelpOpen(false)} />
+      {ctx.leagues.length > 1 ? (
+        <select className="league-select" value={ctx.league.id} onChange={(e) => setLeagueId(e.target.value)} aria-label="League" disabled={loading}>
+          {ctx.leagues.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.name}
+              {LEAGUE_STATUS[l.status] ? ` (${LEAGUE_STATUS[l.status]})` : ''}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <span className="league-name">{ctx.league.name}</span>
+      )}
+      <span>Updated {data.loadedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+      <span className="links">
+        <a href={sleeperLeagueUrl(ctx.league)} target="_blank" rel="noreferrer">
+          Open Sleeper
+        </a>
+        <button className="link-button" onClick={switchUser}>
+          Switch user
+        </button>
+      </span>
     </>
+  )
+  return (
+    <div className="shell">
+      <aside className="rail">
+        <Brand />
+        <nav className="nav" aria-label="Sections">
+          {TABS.map((t, i) => (
+            <button key={t} aria-current={tab === t ? 'page' : undefined} onClick={() => setTab(t)}>
+              <Icon name={t} />
+              {t}
+              <kbd>{i + 1}</kbd>
+            </button>
+          ))}
+        </nav>
+        <div className="account">{account}</div>
+      </aside>
+      <div className="main">
+        <header className="topbar">
+          <div className="topbar-inner">
+            <Brand />
+            <Scorebug ctx={ctx} />
+            <div className="topbar-actions">
+              <button
+                className={`icon-button${loading ? ' spinning' : ''}`}
+                onClick={refresh}
+                disabled={loading}
+                aria-label={loading ? 'Updating' : 'Refresh from Sleeper (R)'}
+                title={`Updated ${data.loadedAt.toLocaleString()}`}
+              >
+                <Icon name="Refresh" size={18} />
+              </button>
+              <button className="icon-button" onClick={() => setHelpOpen(true)} aria-label="Help and shortcuts (?)" title="Help and shortcuts (?)">
+                <Icon name="Help" size={18} />
+              </button>
+            </div>
+          </div>
+          {error && <div className="refresh-error">Couldn't update: {error}. Showing data from {data.loadedAt.toLocaleTimeString()}.</div>}
+        </header>
+        <main className="app">
+          {tab === 'Gameday' && <Gameday ctx={ctx} news={data.news} usage={data.usage} />}
+          {tab === 'Plan' && <Plan ctx={ctx} />}
+          {tab === 'Moves' && <Moves ctx={ctx} trending={data.trending} usage={data.usage} />}
+          {tab === 'Trades' && <Trades ctx={ctx} usage={data.usage} />}
+          {tab === 'League' && <League ctx={ctx} />}
+        </main>
+        <div className="account account-mobile">{account}</div>
+      </div>
+      <Help league={ctx.league} open={helpOpen} onClose={() => setHelpOpen(false)} />
+    </div>
   )
 }

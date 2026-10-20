@@ -5,14 +5,14 @@ import { myGames, simulateSeason } from '../core/sim.ts'
 import { MirrorBars, WeeklyLines } from './charts.tsx'
 import { pct, pts, signed } from './format.tsx'
 
-const YOU = '#22c3e6'
-const THEM = '#f59e0b'
+const YOU = 'var(--you)'
+const THEM = 'var(--them)'
 
 // Rank 1 is the strongest unit in the league; shade fades as the rank drops
 function Rank({ rank, of }: { rank: number; of: number }) {
   const strength = 1 - (rank - 1) / Math.max(of - 1, 1)
   return (
-    <span className="rank" style={{ background: `rgba(34, 195, 230, ${0.06 + strength * 0.55})`, color: strength > 0.6 ? '#04131a' : 'var(--fg)' }}>
+    <span className="rank" style={{ background: `rgba(46, 242, 255, ${0.06 + strength * 0.6})`, color: strength > 0.6 ? 'var(--bg)' : 'var(--fg)' }}>
       {rank}
     </span>
   )

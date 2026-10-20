@@ -3,70 +3,110 @@ import { activePlayers, type Context } from '../core/context.ts'
 import { rosPoints } from '../core/lineup.ts'
 import { tradeChanges } from '../core/scenario.ts'
 import { reviewOffer, type Verdict } from '../core/review.ts'
-import { findTrades, tradesOpen } from '../core/trades.ts'
-import type { Player } from '../core/types.ts'
+import { tradePartners, type Partner } from '../core/partners.ts'
+import { tradesOpen, type TradeIdea } from '../core/trades.ts'
+import type { Player, Position } from '../core/types.ts'
 import type { UsageTrend } from '../core/usage.ts'
 import { BeforeAfter } from './BeforeAfter.tsx'
-import { Delta, PlayerCell } from './format.tsx'
+import { FlipCard } from './Flip.tsx'
+import { Delta, PlayerCell, Pos, signed } from './format.tsx'
 
 const names = (ps: Player[]) => ps.map((p) => p.name).join(' + ')
 
-function Ideas({ ctx }: { ctx: Context }) {
-  const ideas = useMemo(() => findTrades(ctx, { limit: 12 }), [ctx])
-  const [selected, setSelected] = useState<number | null>(null)
-  const idea = selected === null ? null : ideas[selected]
+function FitRow({ label, positions }: { label: string; positions: Position[] }) {
+  return (
+    <div>
+      <span className="label">{label}</span>
+      {positions.length ? positions.map((p) => <Pos key={p} position={p} />) : <span className="detail">Nothing obvious</span>}
+    </div>
+  )
+}
+
+function PartnerCard({ partner, onShow }: { partner: Partner; onShow: (deal: TradeIdea) => void }) {
+  const best = partner.deals[0]
+  const twoWay = partner.helpsYou.length > 0 && partner.helpsThem.length > 0
+  const front = (
+    <>
+      <div className="card-top">
+        <span className={`pill ${twoWay ? 'good' : ''}`}>{twoWay ? 'Two-way fit' : partner.helpsYou.length || partner.helpsThem.length ? 'One-way fit' : 'No clear fit'}</span>
+        <span className="detail">
+          {partner.roster.wins}-{partner.roster.losses}
+        </span>
+      </div>
+      <div className="card-name">{partner.roster.teamName}</div>
+      <div className="fit" style={{ marginTop: 12 }}>
+        <FitRow label="They can help at" positions={partner.helpsYou} />
+        <FitRow label="You can help at" positions={partner.helpsThem} />
+      </div>
+      <div className="card-big">
+        {best ? (
+          <>
+            <b className="gain">{signed(best.myGain)}</b>
+            <span>for you, {signed(best.theirGain)} for them in the best deal</span>
+          </>
+        ) : (
+          <span>No deal helps both sides</span>
+        )}
+      </div>
+    </>
+  )
+  const back = (
+    <>
+      <div className="back-title">Deals with {partner.roster.teamName}</div>
+      {partner.deals.length === 0 && <p className="detail">Nothing here makes both lineups better right now.</p>}
+      {partner.deals.map((d, i) => (
+        <div className="deal" key={i}>
+          <span>
+            Send <b>{names(d.give)}</b>
+          </span>
+          <span>
+            Get <b>{names(d.get)}</b>
+          </span>
+          <span className="gains">
+            <span>
+              You <Delta value={d.myGain} />
+            </span>
+            <span>
+              Them <Delta value={d.theirGain} />
+            </span>
+          </span>
+          <button className="btn-ghost" onClick={() => onShow(d)}>
+            Show before and after
+          </button>
+        </div>
+      ))}
+      <p className="card-note">
+        {partner.needs.length ? `Weakest at ${partner.needs.join(', ')}. ` : ''}
+        {partner.strengths.length ? `Strongest at ${partner.strengths.join(', ')}.` : ''}
+      </p>
+    </>
+  )
+  return <FlipCard label={partner.roster.teamName} accent={twoWay ? 'var(--volt)' : 'var(--them)'} front={front} back={back} />
+}
+
+function Partners({ ctx }: { ctx: Context }) {
+  const partners = useMemo(() => tradePartners(ctx), [ctx])
+  const [shown, setShown] = useState<TradeIdea | null>(null)
   const changes = useMemo(
-    () => (idea ? tradeChanges(ctx, idea.partner.rosterId, idea.give.map((p) => p.id), idea.get.map((p) => p.id)) : null),
-    [ctx, idea],
+    () => (shown ? tradeChanges(ctx, shown.partner.rosterId, shown.give.map((p) => p.id), shown.get.map((p) => p.id)) : null),
+    [ctx, shown],
   )
   return (
     <section className="section">
       <div className="section-head">
-        <h2>Trades both sides should take</h2>
+        <h2>Trade partners</h2>
         <span className="detail">Deadline: week {ctx.league.tradeDeadline}</span>
       </div>
       <p className="note">
-        Deals where both starting lineups get better, so the other manager has a reason to say yes. Pick one to see what it does to each team.
+        Each team sized up against yours: where they're strong and you're thin, and the reverse. A two-way fit is the trade most likely to get accepted. Flip
+        a team for deals where both starting lineups get better.
       </p>
-      {ideas.length === 0 ? (
-        <p className="note">No deal found that helps both sides right now.</p>
-      ) : (
-        <div className="scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>You give</th>
-                <th>You get</th>
-                <th>From</th>
-                <th className="num">You</th>
-                <th className="num">Them</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ideas.map((t, i) => (
-                <tr
-                  key={i}
-                  className={`selectable${selected === i ? ' selected' : ''}`}
-                  onClick={() => setSelected(selected === i ? null : i)}
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && setSelected(selected === i ? null : i)}
-                >
-                  <td>{names(t.give)}</td>
-                  <td>{names(t.get)}</td>
-                  <td className="detail">{t.partner.teamName}</td>
-                  <td className="num">
-                    <Delta value={t.myGain} />
-                  </td>
-                  <td className="num">
-                    <Delta value={t.theirGain} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      {idea && changes && <BeforeAfter ctx={ctx} changes={changes} title={`${names(idea.give)} for ${names(idea.get)}`} />}
+      <div className="card-grid partner-grid">
+        {partners.map((p) => (
+          <PartnerCard key={p.roster.rosterId} partner={p} onShow={setShown} />
+        ))}
+      </div>
+      {shown && changes && <BeforeAfter ctx={ctx} changes={changes} title={`${names(shown.give)} for ${names(shown.get)}`} />}
     </section>
   )
 }
@@ -189,8 +229,8 @@ export function Trades({ ctx, usage }: { ctx: Context; usage: Map<string, UsageT
   if (!tradesOpen(ctx)) return <p className="note">The trade deadline (week {ctx.league.tradeDeadline}) has passed.</p>
   return (
     <>
+      <Partners ctx={ctx} />
       <ReviewOffer ctx={ctx} usage={usage} />
-      <Ideas ctx={ctx} />
     </>
   )
 }

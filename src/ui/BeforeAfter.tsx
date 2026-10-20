@@ -4,8 +4,8 @@ import { beforeAfter, type Change, type Side } from '../core/scenario.ts'
 import { WeeklyLines } from './charts.tsx'
 import { Delta, pct, Pos, pts } from './format.tsx'
 
-const BEFORE = '#7c8aa5'
-const AFTER = '#34d399'
+const BEFORE = 'var(--muted)'
+const AFTER = 'var(--volt)'
 
 // Most moves only matter in a few weeks (a bye, a tough matchup); say which
 function changedWeeks(side: Side): string {

@@ -4,7 +4,7 @@ import type { League } from '../core/types.ts'
 const GUIDE_URL = 'https://github.com/nakulpatel0306/audible/blob/main/docs/GUIDE.md'
 
 export const SHORTCUTS: [string, string][] = [
-  ['1 – 4', 'Gameday, Moves, Trades, League'],
+  ['1 – 5', 'Gameday, Plan, Moves, Trades, League'],
   ['R', 'Refresh from Sleeper'],
   ['?', 'Open this panel'],
   ['Esc', 'Close it'],
@@ -25,7 +25,10 @@ const GLOSSARY: [string, string][] = [
   ['Team total', "Points Vegas expects a player's NFL team to score, once lines post."],
   ['All-play / luck', 'Record if you played every team every week, and how many wins the schedule gave or took.'],
   ['Trade verdicts', 'Accept at +3 or more, Close call 0 to +3, Counter 0 to −3, Decline below −3.'],
-  ['Bye weeks', 'A short week means no one left on your roster can fill a lineup slot. Fix it before then.'],
+  ['Season plan', 'Walks every remaining week and makes the pickups each one needs: bye-week holes first, then clearly better K and DEF matchups. Each move carries into later weeks.'],
+  ['Short week', 'No one left on your roster can fill a lineup slot that week, usually because of byes. The plan fixes it with a pickup when a free agent can.'],
+  ['Trade partners', 'Teams strong where you rank in the bottom 30% of the league, and weak where you rank in the top 30%. A two-way fit is the deal most likely to get accepted.'],
+  ['Flip cards', 'Click or tap any card, or use its corner button, to see the details behind the headline number.'],
 ]
 
 const perYards = (points: number | undefined) => (points ? `1 per ${Math.round(1 / points)} yds` : 'none')

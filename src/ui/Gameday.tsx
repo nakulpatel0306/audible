@@ -1,51 +1,48 @@
 import { useMemo } from 'react'
-import { byePlan } from '../core/byes.ts'
 import { leagueProfiles } from '../core/compare.ts'
 import { activePlayers, projectionFor, type Context } from '../core/context.ts'
 import { disagreement } from '../core/consensus.ts'
 import type { NewsItem } from '../core/espn.ts'
 import { weekLineup } from '../core/lineup.ts'
 import { injuryReport, lineupCheck, rosterNews } from '../core/monitor.ts'
-import { myGames, simulateSeason } from '../core/sim.ts'
+import { simulateSeason } from '../core/sim.ts'
+import type { Player } from '../core/types.ts'
 import { usageSignal, type UsageTrend } from '../core/usage.ts'
-import { pct, PlayerCell, Pos, pts, UsageBadge } from './format.tsx'
+import { FlipCard } from './Flip.tsx'
+import { pct, PlayerCell, Pos, positionColor, pts, UsageBadge } from './format.tsx'
+import { useCurrentGame } from './Scorebug.tsx'
 
 // Sources more than 20% apart historically missed by 30% more; worth a flag
 const SPLIT_FLAG = 0.2
 
+// The range bar's scale: a ceiling few starters' typical weeks reach, so cards compare at a glance
+const RANGE_MAX = 45
+
 function Matchup({ ctx }: { ctx: Context }) {
-  const games = useMemo(() => myGames(ctx), [ctx])
+  const { game, opponent: opp, live } = useCurrentGame(ctx)
   const odds = useMemo(() => simulateSeason(ctx).find((t) => t.rosterId === ctx.me.rosterId), [ctx])
   const powerRank = useMemo(() => leagueProfiles(ctx).findIndex((t) => t.roster.rosterId === ctx.me.rosterId) + 1, [ctx])
-  // While a week is being played, show that game; otherwise the next one
-  const game = games.find((g) => g.week === ctx.week) ?? games[0]
-  const opp = game && ctx.rosters.find((r) => r.rosterId === game.opponent)
-  const live = game?.week === ctx.week && ctx.started.size > 0
 
   return (
     <section className="matchup">
       <div className="matchup-top">
-        <span className={`pill${live ? ' live' : ''}`}>{live ? `Week ${game.week} · live` : game ? `Week ${game.week} matchup` : 'Regular season over'}</span>
-        <span className="detail">{live ? 'Scored so far · projected final below' : 'Projected'}</span>
+        <span className={`pill${live ? ' live' : ''}`}>{game ? `Week ${game.week}${live ? ' · live' : ''}` : 'Regular season over'}</span>
+        <span className="detail">{live ? 'Scored so far, projected final underneath' : 'Projected'}</span>
       </div>
       {game && opp && (
         <>
           <div className="matchup-teams">
-            <div className="matchup-team">
-              <div className="name" style={{ color: 'var(--you)' }}>
-                {ctx.me.teamName}
-              </div>
+            <div className="matchup-team you">
+              <div className="name">{ctx.me.teamName}</div>
               <div className="record">
                 {ctx.me.wins}-{ctx.me.losses}
               </div>
               <div className="score">{pts(game.myScored ?? game.myMean)}</div>
               {game.myScored !== null && <div className="proj">proj {pts(game.myMean)}</div>}
             </div>
-            <div className="vs">VS</div>
-            <div className="matchup-team right">
-              <div className="name" style={{ color: 'var(--them)' }}>
-                {opp.teamName}
-              </div>
+            <div className="vs">vs</div>
+            <div className="matchup-team them">
+              <div className="name">{opp.teamName}</div>
               <div className="record">
                 {opp.wins}-{opp.losses}
               </div>
@@ -54,11 +51,11 @@ function Matchup({ ctx }: { ctx: Context }) {
             </div>
           </div>
           <div className="winbar" role="img" aria-label={`${pct(game.winPct)} chance to win`}>
-            <div style={{ width: `${game.winPct * 100}%`, background: 'var(--you)' }} />
-            <div style={{ width: `${(1 - game.winPct) * 100}%`, background: 'var(--them)' }} />
+            <div className="you" style={{ width: `${game.winPct * 100}%` }} />
+            <div className="them" style={{ width: `${(1 - game.winPct) * 100}%` }} />
           </div>
           <div className="winbar-labels">
-            <span style={{ color: 'var(--you)' }}>{pct(game.winPct)} win</span>
+            <span style={{ color: 'var(--you)' }}>{pct(game.winPct)} to win</span>
             <span style={{ color: 'var(--them)' }}>{pct(1 - game.winPct)}</span>
           </div>
         </>
@@ -114,113 +111,126 @@ function LineupCheckBanner({ ctx }: { ctx: Context }) {
   )
 }
 
-function Lineup({ ctx, usage }: { ctx: Context; usage: Map<string, UsageTrend> | null }) {
+function PlayerCard({ ctx, player, slot, week, usage }: { ctx: Context; player: Player; slot: string; week: number; usage: UsageTrend | undefined }) {
+  const proj = projectionFor(ctx, player.id, week)
+  const line = player.team ? ctx.vegas.get(week)?.get(player.team) : undefined
+  const split = disagreement(proj.sources.sleeper, proj.sources.espn) >= SPLIT_FLAG
+  const bye = ctx.byes.get(player.team ?? '')
+  const signal = usageSignal(usage)
+  const isFlex = !['QB', 'RB', 'WR', 'TE', 'K', 'DEF'].includes(slot)
+  const low = Math.max(0, proj.mean - proj.sd)
+  const high = Math.min(proj.mean + proj.sd, RANGE_MAX)
+
+  const front = (
+    <>
+      <div className="card-top">
+        <Pos position={player.position} />
+        {isFlex && <span className="detail">Flex</span>}
+      </div>
+      <div className="card-name">{player.name}</div>
+      <div className="card-sub">
+        {player.team ?? 'Free agent'} {proj.opponent ? `vs ${proj.opponent}` : '· bye'}
+      </div>
+      <div className="card-badges">
+        {player.injuryStatus && <span className={`badge ${player.injuryStatus === 'Questionable' ? 'questionable' : 'injury'}`}>{player.injuryStatus}</span>}
+        <UsageBadge signal={signal} />
+        {split && <span className="badge">Sources split</span>}
+      </div>
+      <div className="card-big">
+        <b>{pts(proj.mean)}</b>
+        <span>proj</span>
+      </div>
+      <div className="range" role="img" aria-label={`Typical range ${pts(low)} to ${pts(high)}`}>
+        <i style={{ left: `${(low / RANGE_MAX) * 100}%`, width: `${((high - low) / RANGE_MAX) * 100}%` }} />
+        <b style={{ left: `calc(${(Math.min(proj.mean, RANGE_MAX) / RANGE_MAX) * 100}% - 1.5px)` }} />
+      </div>
+      <div className="range-label">
+        <span>{pts(low)}</span>
+        <span>{pts(high)}</span>
+      </div>
+    </>
+  )
+
+  const back = (
+    <>
+      <div className="back-title">{player.name}</div>
+      <dl className="facts">
+        <div>
+          <dt>Sleeper / ESPN</dt>
+          <dd>
+            {pts(proj.sources.sleeper)} / {proj.sources.espn === null ? '—' : pts(proj.sources.espn)}
+          </dd>
+        </div>
+        {line && (
+          <div>
+            <dt>Team total</dt>
+            <dd>{line.implied.toFixed(1)}</dd>
+          </div>
+        )}
+        <div>
+          <dt>Bye</dt>
+          <dd>{bye === undefined ? '—' : bye < week ? `Done (wk ${bye})` : `Week ${bye}`}</dd>
+        </div>
+      </dl>
+      {(player.injuryNotes || signal) && <p className="card-note">{player.injuryNotes ?? signal?.text}</p>}
+      {split && <p className="card-note">Sleeper and ESPN disagree by 20%+, so this one is harder to call.</p>}
+    </>
+  )
+
+  return <FlipCard label={player.name} accent={positionColor(player.position)} front={front} back={back} />
+}
+
+function Starters({ ctx, usage }: { ctx: Context; usage: Map<string, UsageTrend> | null }) {
   const week = ctx.planWeek
   const lineup = useMemo(() => weekLineup(ctx, activePlayers(ctx.me), week), [ctx, week])
-  const vegas = ctx.vegas.get(week)
+  const starting = new Set(lineup.slots.map((s) => s.player?.id))
+  const bench = activePlayers(ctx.me)
+    .filter((id) => !starting.has(id))
+    .map((id) => ctx.players.get(id))
+    .filter((p): p is Player => !!p)
+    .map((p) => ({ p, ...projectionFor(ctx, p.id, week) }))
+    .sort((a, b) => b.mean - a.mean)
+
   return (
     <section className="section">
       <div className="section-head">
-        <h2>Best lineup · week {week}</h2>
+        <h2>Best lineup, week {week}</h2>
         <span className="pill">
           {pts(lineup.mean)} proj · {pts(Math.max(0, lineup.mean - lineup.sd))}–{pts(lineup.mean + lineup.sd)}
         </span>
       </div>
-      <div className="scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Slot</th>
-              <th>Player</th>
-              <th>Matchup</th>
-              <th className="num">Sleeper</th>
-              <th className="num">ESPN</th>
-            </tr>
-          </thead>
-          <tbody>
-            {lineup.slots.map(({ slot, player: c }, i) => {
-              const player = c && ctx.players.get(c.id)
-              if (!player || !c) {
-                return (
-                  <tr key={i}>
-                    <td className="slot">
-                      <Pos position={slot} />
-                    </td>
-                    <td colSpan={4} className="detail">
-                      Nobody eligible
-                    </td>
-                  </tr>
-                )
-              }
-              const proj = projectionFor(ctx, c.id, week)
-              const line = player.team ? vegas?.get(player.team) : undefined
-              const split = disagreement(proj.sources.sleeper, proj.sources.espn) >= SPLIT_FLAG
-              const bye = ctx.byes.get(player.team ?? '')
-              return (
-                <tr key={i}>
-                  <td className="slot">
-                    <Pos position={slot === 'FLEX' ? player.position : slot} />
-                    {slot === 'FLEX' && <div className="detail" style={{ fontSize: 11, marginTop: 2 }}>flex</div>}
-                  </td>
-                  <td>
-                    <PlayerCell player={player} showPosition={false}>
-                      <UsageBadge signal={usageSignal(usage?.get(c.id))} />
-                      {split && (
-                        <span className="badge" title="Sleeper and ESPN disagree by 20%+; these players have historically been less predictable">
-                          Sources split
-                        </span>
-                      )}
-                    </PlayerCell>
-                  </td>
-                  <td className="detail">
-                    {proj.opponent ? `vs ${proj.opponent}` : 'Bye'}
-                    {line && <div style={{ fontSize: 12 }}>Team total {line.implied.toFixed(1)}</div>}
-                    {bye !== undefined && bye > week && <div style={{ fontSize: 12 }}>Bye wk {bye}</div>}
-                  </td>
-                  <td className="num" style={{ fontWeight: 700 }}>
-                    {pts(proj.sources.sleeper)}
-                  </td>
-                  <td className="num detail">{proj.sources.espn === null ? '—' : pts(proj.sources.espn)}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-      <p className="note">
-        Sleeper projections, scored with your league's rules. ESPN's sits beside it: averaging the two didn't predict better in testing, but when they
-        disagree the range widens. Team totals come from DraftKings once lines post.
-      </p>
-    </section>
-  )
-}
-
-function Schedule({ ctx }: { ctx: Context }) {
-  const games = useMemo(() => myGames(ctx), [ctx])
-  const teamName = (id: number) => ctx.rosters.find((r) => r.rosterId === id)?.teamName ?? ''
-  return (
-    <section className="section">
-      <div className="section-head">
-        <h2>Win chances</h2>
-        {ctx.started.size > 0 && <span className="pill live">Week {ctx.week} live</span>}
-      </div>
-      <div className="strip">
-        {games.map((g) => {
-          const color = g.winPct >= 0.5 ? 'var(--gain)' : 'var(--loss)'
-          return (
-            <div className="chip" key={g.week} title={`${pts(g.myMean)} vs ${pts(g.theirMean)}`}>
-              <div className="wk">Week {g.week}</div>
-              <div className="pct" style={{ color }}>
-                {pct(g.winPct)}
+      <p className="note">The bar under each score is a typical week's range. Flip a card for both sources' projections, the Vegas team total and the player's bye.</p>
+      <div className="card-grid">
+        {lineup.slots.map(({ slot, player: c }, i) => {
+          const player = c && ctx.players.get(c.id)
+          if (!player) {
+            return (
+              <div key={i} className="flip-face" style={{ borderStyle: 'dashed' }}>
+                <Pos position={slot} />
+                <div className="card-name" style={{ marginTop: 10 }}>
+                  Empty
+                </div>
+                <div className="card-sub">Nobody on your roster can play here. See Plan for a pickup.</div>
               </div>
-              <div className="opp">{teamName(g.opponent)}</div>
-              <div className="meter">
-                <div style={{ width: `${g.winPct * 100}%`, background: color }} />
-              </div>
-            </div>
-          )
+            )
+          }
+          return <PlayerCard key={player.id} ctx={ctx} player={player} slot={slot} week={week} usage={usage?.get(player.id)} />
         })}
       </div>
+      {bench.length > 0 && (
+        <>
+          <h3 className="sub-head">Bench</h3>
+          <div className="bench">
+            {bench.map(({ p, mean, opponent }) => (
+              <div className="bench-row" key={p.id}>
+                <Pos position={p.position} />
+                <span className="name">{p.name}</span>
+                {opponent ? <b>{pts(mean)}</b> : <span className="detail">Bye</span>}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </section>
   )
 }
@@ -231,7 +241,7 @@ function Injuries({ ctx }: { ctx: Context }) {
     <section className="section">
       <div className="section-head">
         <h2>Injury report</h2>
-        <span className="pill">{injuries.length || 'None'}</span>
+        <span className={`pill${injuries.length ? ' bad' : ' good'}`}>{injuries.length || 'All clear'}</span>
       </div>
       {injuries.length === 0 ? (
         <p className="note" style={{ margin: 0 }}>
@@ -252,44 +262,6 @@ function Injuries({ ctx }: { ctx: Context }) {
           </tbody>
         </table>
       )}
-    </section>
-  )
-}
-
-function Byes({ ctx }: { ctx: Context }) {
-  const plan = useMemo(() => byePlan(ctx), [ctx])
-  const short = plan.filter((w) => w.empty.length > 0).length
-  return (
-    <section className="section">
-      <div className="section-head">
-        <h2>Bye weeks</h2>
-        <span className={`pill${short ? ' warn' : ''}`}>{short ? `${short} week${short > 1 ? 's' : ''} short` : plan.length ? 'Covered' : 'None left'}</span>
-      </div>
-      {plan.length === 0 ? (
-        <p className="note" style={{ margin: 0 }}>
-          {ctx.byes.size ? 'No one on your roster has a bye left.' : "Sleeper's schedule didn't load. Refresh to try again."}
-        </p>
-      ) : (
-        <table>
-          <tbody>
-            {plan.map((w) => (
-              <tr key={w.week}>
-                <td className="slot">Wk {w.week}</td>
-                <td>
-                  {w.out.map(({ player, starter }, i) => (
-                    <span key={player.id} className={starter ? 'strong' : 'detail'}>
-                      {i > 0 && ', '}
-                      {player.name}
-                    </span>
-                  ))}
-                  {w.empty.length > 0 && <div className="loss detail">No one left to start at {w.empty.join(', ')}</div>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      {plan.length > 0 && <p className="note">Bold players are usual starters. A short week needs a pickup or trade before then.</p>}
     </section>
   )
 }
@@ -341,13 +313,9 @@ export function Gameday({ ctx, news, usage }: { ctx: Context; news: NewsItem[] |
       <Matchup ctx={ctx} />
       <LineupCheckBanner ctx={ctx} />
       <div className="cols">
-        <div className="stack">
-          <Lineup ctx={ctx} usage={usage} />
-          <Schedule ctx={ctx} />
-        </div>
+        <Starters ctx={ctx} usage={usage} />
         <div className="stack">
           <Injuries ctx={ctx} />
-          <Byes ctx={ctx} />
           <News ctx={ctx} news={news} />
         </div>
       </div>

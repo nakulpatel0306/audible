@@ -5,7 +5,7 @@ import { streamPlan, type StreamPlan } from '../core/streaming.ts'
 import { usageSignal, type UsageTrend } from '../core/usage.ts'
 import { waiverTargets } from '../core/waivers.ts'
 import { BeforeAfter } from './BeforeAfter.tsx'
-import { Delta, PlayerCell, pts, UsageBadge } from './format.tsx'
+import { PlayerCell, pts, signed, UsageBadge } from './format.tsx'
 
 function Waivers({ ctx, trending, usage }: { ctx: Context; trending: Map<string, number>; usage: Map<string, UsageTrend> | null }) {
   const picks = useMemo(() => waiverTargets(ctx, trending, { limit: 12, perPosition: 4 }), [ctx, trending])
@@ -20,44 +20,28 @@ function Waivers({ ctx, trending, usage }: { ctx: Context; trending: Map<string,
         <h2>Waiver pickups</h2>
         {ctx.league.waiverType === 'rolling' && priority && <span className="detail">You're #{priority} in waiver priority</span>}
       </div>
-      <p className="note">Ranked by how many more points your starting lineup scores the rest of the season. Pick one to see the before and after.</p>
+      <p className="note">The big number is how many more points your starting lineup scores the rest of the season. Pick one to see the before and after.</p>
       {picks.length === 0 ? (
         <p className="note">Nobody on waivers would crack your lineup. Hold your priority.</p>
       ) : (
-        <div className="scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Add</th>
-                <th>Drop</th>
-                <th className="num">Week {ctx.planWeek}</th>
-                <th className="num">Rest of season</th>
-              </tr>
-            </thead>
-            <tbody>
-              {picks.map((p) => (
-                <tr
-                  key={p.add.id}
-                  className={`selectable${selected === p.add.id ? ' selected' : ''}`}
-                  onClick={() => setSelected(selected === p.add.id ? null : p.add.id)}
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && setSelected(selected === p.add.id ? null : p.add.id)}
-                >
-                  <td>
-                    <PlayerCell player={p.add}>
-                      <UsageBadge signal={usageSignal(usage?.get(p.add.id))} />
-                      {p.trendingAdds > 0 && <span className="badge">{p.trendingAdds.toLocaleString()} adds</span>}
-                    </PlayerCell>
-                  </td>
-                  <td>{p.drop ? <PlayerCell player={p.drop} /> : <span className="detail">open spot</span>}</td>
-                  <td className="num">{pts(p.nextWeek)}</td>
-                  <td className="num">
-                    <Delta value={p.gain} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="move-cards">
+          {picks.map((p) => (
+            <button key={p.add.id} className="move-card" aria-pressed={selected === p.add.id} onClick={() => setSelected(selected === p.add.id ? null : p.add.id)}>
+              <span className="row">
+                <PlayerCell player={p.add}>
+                  <UsageBadge signal={usageSignal(usage?.get(p.add.id))} />
+                </PlayerCell>
+                <span className="gain-big">{signed(p.gain)}</span>
+              </span>
+              <span className="row">
+                <span className="drop">{p.drop ? `Drop ${p.drop.name}` : 'Into an open spot'}</span>
+                <span className="detail">
+                  {pts(p.nextWeek)} in week {ctx.planWeek}
+                </span>
+              </span>
+              {p.trendingAdds > 0 && <span className="badge hot" style={{ justifySelf: 'start' }}>{p.trendingAdds.toLocaleString()} adds in 48h</span>}
+            </button>
+          ))}
         </div>
       )}
       {pick && changes && <BeforeAfter ctx={ctx} changes={changes} title={`Add ${pick.add.name}${pick.drop ? `, drop ${pick.drop.name}` : ''}`} />}
@@ -71,6 +55,10 @@ function Stream({ ctx, plan }: { ctx: Context; plan: StreamPlan }) {
   const vegas = ctx.vegas.get(ctx.planWeek)
   const changes = useMemo(() => (plan.swap ? waiverChanges(ctx, plan.swap.add.id, plan.swap.drop.id) : null), [ctx, plan])
   const label = plan.position === 'DEF' ? 'Defense' : 'Kicker'
+  // Shade each week against the rest of the table, so the best matchups glow brightest
+  const means = rows.flatMap((o) => o.weeks.filter((w) => w.opponent).map((w) => w.mean))
+  const low = Math.min(...means)
+  const spread = Math.max(Math.max(...means) - low, 1)
 
   return (
     <section className="section">
@@ -102,14 +90,14 @@ function Stream({ ctx, plan }: { ctx: Context; plan: StreamPlan }) {
                 <tr key={o.player.id} className={o.owned ? 'you' : ''}>
                   <td>
                     {o.player.name}
-                    {o.owned && <span className="detail"> · yours</span>}
+                    {o.owned && <span className="detail"> (yours)</span>}
                   </td>
                   {o.weeks.map((w) => (
                     <td key={w.week} className="num">
                       {w.opponent ? (
-                        <>
+                        <span className="heat" style={{ background: `rgba(46, 242, 255, ${(0.04 + 0.4 * Math.max(0, w.mean - low) / spread).toFixed(2)})` }}>
                           <span className="detail">{w.opponent}</span> {pts(w.mean)}
-                        </>
+                        </span>
                       ) : (
                         <span className="detail">bye</span>
                       )}
