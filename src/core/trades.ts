@@ -40,10 +40,12 @@ function combos<T>(items: T[], maxSize: number): T[][] {
 
 export const tradesOpen = (ctx: Context) => ctx.week <= ctx.league.tradeDeadline
 
-// Searches 1-for-1 up to 2-for-2 deals where both starting lineups get better. Those are the
-// trades another manager might actually accept: positional surplus for positional need.
-export function findTrades(ctx: Context, { minGain = 3, perPartner = 2, limit = 10, assetsPerTeam = 8 } = {}): TradeIdea[] {
-  if (!tradesOpen(ctx)) return []
+// Most balanced first: a lopsided "win" for you is one they'll decline
+const balance = (a: TradeIdea, b: TradeIdea) => Math.min(b.myGain, b.theirGain) - Math.min(a.myGain, a.theirGain)
+
+// Searches 1-for-1 up to 2-for-2 deals with one team where both starting lineups get better.
+// Those are the trades another manager might actually accept: positional surplus for need.
+export function tradesWith(ctx: Context, partner: Roster, { minGain = 3, assetsPerTeam = 8 } = {}): TradeIdea[] {
   const tradeable = (ids: string[]) =>
     ids
       .filter((id) => !['K', 'DEF'].includes(ctx.players.get(id)?.position ?? ''))
@@ -52,28 +54,28 @@ export function findTrades(ctx: Context, { minGain = 3, perPartner = 2, limit = 
 
   const mine = activePlayers(ctx.me)
   const myBase = rosValue(ctx, mine)
-  const myOffers = combos(tradeable(mine), 2)
-  const ideas: TradeIdea[] = []
-
-  for (const partner of ctx.rosters) {
-    if (partner.rosterId === ctx.me.rosterId) continue
-    const theirs = activePlayers(partner)
-    const theirBase = rosValue(ctx, theirs)
-    const found: TradeIdea[] = []
-    for (const give of myOffers) {
-      for (const get of combos(tradeable(theirs), 2)) {
-        const myGain = rosValue(ctx, afterTrade(ctx, mine, give, get)) - myBase
-        if (myGain < minGain) continue
-        const theirGain = rosValue(ctx, afterTrade(ctx, theirs, get, give)) - theirBase
-        if (theirGain < 0) continue
-        found.push(idea(ctx, partner, give, get, myGain, theirGain))
-      }
+  const theirs = activePlayers(partner)
+  const theirBase = rosValue(ctx, theirs)
+  const found: TradeIdea[] = []
+  for (const give of combos(tradeable(mine), 2)) {
+    for (const get of combos(tradeable(theirs), 2)) {
+      const myGain = rosValue(ctx, afterTrade(ctx, mine, give, get)) - myBase
+      if (myGain < minGain) continue
+      const theirGain = rosValue(ctx, afterTrade(ctx, theirs, get, give)) - theirBase
+      if (theirGain < 0) continue
+      found.push(idea(ctx, partner, give, get, myGain, theirGain))
     }
-    // Most balanced first: a lopsided "win" for you is one they'll decline
-    found.sort((a, b) => Math.min(b.myGain, b.theirGain) - Math.min(a.myGain, a.theirGain))
-    ideas.push(...distinct(found).slice(0, perPartner))
   }
-  return ideas.sort((a, b) => Math.min(b.myGain, b.theirGain) - Math.min(a.myGain, a.theirGain)).slice(0, limit)
+  return distinct(found.sort(balance))
+}
+
+export function findTrades(ctx: Context, { minGain = 3, perPartner = 2, limit = 10, assetsPerTeam = 8 } = {}): TradeIdea[] {
+  if (!tradesOpen(ctx)) return []
+  return ctx.rosters
+    .filter((r) => r.rosterId !== ctx.me.rosterId)
+    .flatMap((partner) => tradesWith(ctx, partner, { minGain, assetsPerTeam }).slice(0, perPartner))
+    .sort(balance)
+    .slice(0, limit)
 }
 
 function idea(ctx: Context, partner: Roster, give: string[], get: string[], myGain: number, theirGain: number): TradeIdea {

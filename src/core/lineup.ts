@@ -1,7 +1,7 @@
 import { LAST_WEEK, projectionFor, type Context } from './context.ts'
 import type { Position } from './types.ts'
 
-const ELIGIBLE: Record<string, Position[]> = {
+export const ELIGIBLE: Record<string, Position[]> = {
   QB: ['QB'],
   RB: ['RB'],
   WR: ['WR'],
