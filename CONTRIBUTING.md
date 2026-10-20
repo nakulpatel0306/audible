@@ -21,6 +21,8 @@ src/core/     plain TypeScript, shared by the web app and the CLI
   trades.ts     trade search   sim.ts        win and playoff odds
   review.ts     offer verdicts, reasons and counteroffers
   compare.ts    power rankings scenario.ts   before and after
+  plan.ts       week-by-week roster plan
+  partners.ts   trade partner fit
 src/ui/       the React app, one file per tab plus shared pieces
 cli/          the terminal report and trade grader
 tests/        bun tests against small hand-built leagues

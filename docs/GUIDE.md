@@ -3,7 +3,7 @@
 What every number means and how it's worked out. All points are in your league's own
 scoring. The short version, with your league's rules, is under **Help** in the app.
 
-**Shortcuts:** `1`–`4` switch tabs, `R` refreshes from Sleeper, `?` opens Help, `Esc`
+**Shortcuts:** `1`–`5` switch tabs, `R` refreshes from Sleeper, `?` opens Help, `Esc`
 closes it.
 
 ## Gameday
@@ -25,8 +25,10 @@ projection, and flags byes, injured starters and better bench options. Players w
 game has already kicked off are locked, so they're left out.
 
 **Best lineup.** The highest-projected legal lineup for the next week you can still
-change. The range under the title covers a typical week, one standard deviation either
-side.
+change, one card per starter with your bench underneath. The range under the title
+covers a typical week, one standard deviation either side, and the bar on each card
+shows that player's range. Click or tap a card (or its corner button) to flip it for
+the details:
 
 - **Sleeper / ESPN:** each source's projection. Sleeper's is the one Audible uses.
 - **Sources split:** the two disagree by 20% or more. Those players have been less
@@ -36,12 +38,22 @@ side.
 - **Team total:** the points Vegas expects that player's team to score. It appears
   once sportsbooks post the week's lines, usually early in the week.
 
-**Win chances.** Your odds in every remaining regular-season game.
+## Plan
 
-**Bye weeks.** Every remaining week where someone on your roster is on bye, from the
-NFL schedule. Bold names are usual starters, judged by their average projection. A week
-is **short** when nobody left on your roster can fill a lineup slot: fix it with a
-pickup or trade before then. The best lineup also notes each starter's upcoming bye.
+**Week by week.** A card for every week left, with your odds against that week's
+opponent and your projected lineup. Audible walks the season in order and, each week,
+makes the pickups that week needs: a free agent who fills a slot nobody on your roster
+can play (usually a bye), or a kicker or defense with a clearly better matchup. A move
+has to add at least 2 points that week and can't cost more later than it gains now.
+At most two moves a week. Each move carries into the weeks after it, so the drop is
+gone for good. Flip a week for its moves, who's on bye, and the lineup before and after.
+
+A week is **short** when nobody on your roster can fill a lineup slot. "Still short"
+means no free agent fixes it either: that needs a trade.
+
+**Your move list.** Every planned move in order, with what it adds that week. The plan
+assumes today's free agents are still there when you need them, so recheck it after
+each waiver run.
 
 ## Moves
 
@@ -75,9 +87,13 @@ more of theirs, or sending a lesser player instead. It keeps those that gain you
 least 2 points without costing them more than 2, sorted by what they gain. Click one
 to load it.
 
-**Trades both sides should take.** Every 1-for-1 through 2-for-2 deal with each team,
-kept only if *both* starting lineups improve, sorted by the smaller of the two gains.
-Those are the deals another manager has a reason to accept.
+**Trade partners.** One card per team. "They can help at" lists positions where
+they rank in the top 30% of the league and you don't; "You can help at" is the reverse.
+A **two-way fit** has both, and those teams come first. The big number is your gain in
+the best deal with them. Flip a card for up to two deals: every 1-for-1 through 2-for-2
+trade, kept only if *both* starting lineups improve, sorted by the smaller of the two
+gains. Those are the deals another manager has a reason to accept. **Show before and
+after** opens the full comparison.
 
 ## Before and after
 
