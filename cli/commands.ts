@@ -95,7 +95,7 @@ export async function report(who: Who) {
       const weeks = o.weeks.map((w) => `${w.opponent ?? 'bye'} ${w.mean.toFixed(1)}`.padEnd(10)).join(' ')
       console.log(`  ${o.owned ? 'yours' : 'FA   '}  ${o.player.name.padEnd(24)} ${weeks}`)
     }
-    if (plan.swap) console.log(`  -> add ${plan.swap.add.name}, drop ${plan.swap.drop.name} (+${plan.swap.gain.toFixed(1)} next week)`)
+    if (plan.swap) console.log(`  -> add ${plan.swap.add.name}, drop ${plan.swap.drop?.name ?? 'nobody'} (+${plan.swap.gain.toFixed(1)} next week)`)
     else console.log('  -> keep what you have')
   }
 

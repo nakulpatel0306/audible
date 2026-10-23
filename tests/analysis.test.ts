@@ -78,7 +78,7 @@ describe('streaming', () => {
   test('recommends a defense swap only when the free agent is clearly better', () => {
     const plan = streamPlan(ctx(), 'DEF')
     expect(plan.swap?.add.id).toBe('faDEF')
-    expect(plan.swap?.drop.id).toBe('defA')
+    expect(plan.swap?.drop?.id).toBe('defA')
     expect(plan.swap?.gain).toBe(4)
   })
 
@@ -87,6 +87,25 @@ describe('streaming', () => {
     // faDEF has one great matchup, then projects worse than defA every week after
     for (let w = 11; w <= 17; w++) c.projections.get(w)!.set('faDEF', { mean: 2, sd: 1, opponent: 'OPP', sources: { sleeper: 2, espn: null } })
     expect(streamPlan(c, 'DEF').swap).toBeNull()
+  })
+
+  test('fills an empty position into an open roster spot', () => {
+    const c = ctx()
+    c.me.players = c.me.players.filter((id) => id !== 'defA')
+    const plan = streamPlan(c, 'DEF')
+    expect(plan.mine).toHaveLength(0)
+    expect(plan.swap?.add.id).toBe('faDEF')
+    expect(plan.swap?.drop).toBeNull()
+    expect(plan.swap?.gain).toBe(9)
+  })
+
+  test('fills an empty position on a full roster by cutting the least useful player', () => {
+    const c = ctx()
+    c.me.players = ['qbA', 'rbA', 'wrA', 'rbA2', 'faTE', 'wrB2']
+    const plan = streamPlan(c, 'DEF')
+    // With no FLEX, only qbA, rbA and wrB2 start; any of the other three is free to cut
+    expect(plan.swap?.add.id).toBe('faDEF')
+    expect(['wrA', 'rbA2', 'faTE']).toContain(plan.swap?.drop?.id ?? '')
   })
 })
 

@@ -53,8 +53,13 @@ function Stream({ ctx, plan }: { ctx: Context; plan: StreamPlan }) {
   const rows = [...plan.mine, ...plan.options]
   const weeks = rows[0]?.weeks.map((w) => w.week) ?? []
   const vegas = ctx.vegas.get(ctx.planWeek)
-  const changes = useMemo(() => (plan.swap ? waiverChanges(ctx, plan.swap.add.id, plan.swap.drop.id) : null), [ctx, plan])
+  const changes = useMemo(() => (plan.swap ? waiverChanges(ctx, plan.swap.add.id, plan.swap.drop?.id ?? null) : null), [ctx, plan])
   const label = plan.position === 'DEF' ? 'Defense' : 'Kicker'
+  const status = plan.swap
+    ? `${plan.swap.drop ? 'Swap' : 'Add'}: +${pts(plan.swap.gain)} in week ${ctx.planWeek}`
+    : plan.mine.length > 0
+      ? 'Keep yours this week'
+      : `No ${label.toLowerCase()} worth adding`
   // Shade each week against the rest of the table, so the best matchups glow brightest
   const means = rows.flatMap((o) => o.weeks.filter((w) => w.opponent).map((w) => w.mean))
   const low = Math.min(...means)
@@ -64,7 +69,7 @@ function Stream({ ctx, plan }: { ctx: Context; plan: StreamPlan }) {
     <section className="section">
       <div className="section-head">
         <h2>{label} streaming</h2>
-        <span className="detail">{plan.swap ? `Swap: +${pts(plan.swap.gain)} in week ${ctx.planWeek}` : 'Keep yours this week'}</span>
+        <span className="detail">{status}</span>
       </div>
       {plan.position === 'DEF' && (
         <p className="note">Defenses score off the other offense. The opponent's Vegas team total is the cleanest single read: lower means fewer points allowed.</p>
@@ -110,7 +115,7 @@ function Stream({ ctx, plan }: { ctx: Context; plan: StreamPlan }) {
           </tbody>
         </table>
       </div>
-      {plan.swap && changes && <BeforeAfter ctx={ctx} changes={changes} title={`Add ${plan.swap.add.name}, drop ${plan.swap.drop.name}`} />}
+      {plan.swap && changes && <BeforeAfter ctx={ctx} changes={changes} title={`Add ${plan.swap.add.name}${plan.swap.drop ? `, drop ${plan.swap.drop.name}` : ''}`} />}
     </section>
   )
 }

@@ -1,5 +1,5 @@
 import { activePlayers, LAST_WEEK, projectionFor, type Context } from './context.ts'
-import { rosValue, weekLineup } from './lineup.ts'
+import { rosterCapacity, rosValue, weekLineup } from './lineup.ts'
 import type { Player } from './types.ts'
 import { freeAgents } from './waivers.ts'
 
@@ -11,8 +11,9 @@ export type StreamPlan = {
   position: 'DEF' | 'K'
   mine: StreamOption[]
   options: StreamOption[]
-  // Set when a free agent beats your current starter next week by enough to be worth a move
-  swap: { add: Player; drop: Player; gain: number } | null
+  // Set when a free agent beats your current starter next week by enough to be worth a move.
+  // No drop means the add goes into an open roster spot.
+  swap: { add: Player; drop: Player | null; gain: number } | null
 }
 
 // Below this, churning the position isn't worth burning waiver priority
@@ -47,16 +48,24 @@ export function streamPlan(ctx: Context, position: 'DEF' | 'K', horizon = 3): St
   const roster = activePlayers(ctx.me)
   const current = weekLineup(ctx, roster, ctx.planWeek).mean
   const later = rosValue(ctx, roster, ctx.planWeek + 1)
+  // With nobody rostered at the position the slot scores zero, so there's no one of theirs to
+  // drop: use an open spot, or else cut whoever the lineup misses least
+  const drops: (Player | null)[] =
+    mine.length > 0
+      ? mine.map((o) => o.player)
+      : roster.length < rosterCapacity(ctx)
+        ? [null]
+        : roster.map((id) => ctx.players.get(id)).filter((p): p is Player => !!p && p.position !== 'K' && p.position !== 'DEF')
   let bestScore = 0
   for (const add of options) {
-    for (const drop of mine) {
-      const next = [...roster.filter((id) => id !== drop.player.id), add.player.id]
+    for (const drop of drops) {
+      const next = [...roster.filter((id) => id !== drop?.id), add.player.id]
       const gain = weekLineup(ctx, next, ctx.planWeek).mean - current
       if (gain < MIN_SWAP_GAIN) continue
       const score = gain + rosValue(ctx, next, ctx.planWeek + 1) - later
       if (score > bestScore) {
         bestScore = score
-        swap = { add: add.player, drop: drop.player, gain }
+        swap = { add: add.player, drop, gain }
       }
     }
   }
